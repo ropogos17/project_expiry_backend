@@ -1,30 +1,16 @@
 package models
 
-import "gorm.io/gorm"
+import "time"
 
-// ShoppingListItem represents the shopping list item table
+// ShoppingListItem represents an item in a shopping list
 type ShoppingListItem struct {
-	gorm.Model
-	Name        string  `json:"name" gorm:"not null;index" binding:"required"`
-	Description *string `json:"description" gorm:"type:text"`
-	Quantity    *string `json:"quantity"`
-	IsChecked   bool    `json:"is_checked" gorm:"default:false;index"`
-	IsDeleted   bool    `json:"is_deleted" gorm:"default:false;index"`
-
-	// User relationship
-	LastModified uint `json:"last_modified" gorm:"not null;index"`
-	ModifiedBy   User `json:"modified_by" gorm:"foreignKey:LastModified;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-}
-
-// Scopes for common queries
-func (ShoppingListItem) NotDeleted(db *gorm.DB) *gorm.DB {
-	return db.Where("is_deleted = ?", false)
-}
-
-func (ShoppingListItem) Checked(db *gorm.DB) *gorm.DB {
-	return db.Where("is_checked = ?", true)
-}
-
-func (ShoppingListItem) Unchecked(db *gorm.DB) *gorm.DB {
-	return db.Where("is_checked = ?", false)
+	ID           int        `json:"id" db:"id"`
+	Name         string     `json:"name" db:"name"`
+	Description  *string    `json:"description" db:"description"`
+	Quantity     *string    `json:"quantity" db:"quantity"`
+	IsChecked    bool       `json:"is_checked" db:"is_checked"`
+	IsDeleted    bool       `json:"is_deleted" db:"is_deleted"`
+	CreatedAt    time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt    *time.Time `json:"updated_at" db:"updated_at"`
+	LastModified int        `json:"last_modified" db:"last_modified"`
 }

@@ -1,62 +1,47 @@
 package models
 
 import (
-	"gorm.io/gorm"
 	"time"
 )
 
+// User represents a user in the system
 type User struct {
-	gorm.Model
-	Name      string `json:"name" gorm:"not null" binding:"required"`
-	Username  string `json:"username" gorm:"unique;not null" binding:"required"`
-	Email     string `json:"email" gorm:"unique;not null" binding:"required,email"`
-	Phone     string `json:"phone" gorm:"default:''"`
-	HasAvatar bool   `json:"has_avatar" gorm:"default:false"`
-
-	// Authentication fields
-	Password          string     `json:"-" gorm:"not null"` // Hidden from JSON
-	Salt              string     `json:"-" gorm:"not null"` // Hidden from JSON
-	EmailVerified     bool       `json:"email_verified" gorm:"default:false"`
-	PhoneVerified     bool       `json:"phone_verified" gorm:"default:false"`
-	TwoFactorEnabled  bool       `json:"two_factor_enabled" gorm:"default:false"`
-	TwoFactorSecret   *string    `json:"-" gorm:"type:varchar(255)"` // Hidden from JSON
-	LastLogin         *time.Time `json:"last_login" gorm:"index"`
-	LoginAttempts     int        `json:"login_attempts" gorm:"default:0"`
-	LockedUntil       *time.Time `json:"locked_until" gorm:"index"`
-	PasswordChangedAt time.Time  `json:"password_changed_at" gorm:"not null"`
-
-	// Relationships
-	RoleID      uint `json:"role_id" gorm:"not null;index"`
-	Role        Role `json:"role" gorm:"foreignKey:RoleID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-	IsSuperuser bool `json:"is_superuser" gorm:"default:false;index"`
-
-	StatusID uint       `json:"status_id" gorm:"not null;index"`
-	Status   UserStatus `json:"status" gorm:"foreignKey:StatusID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
-
-	// Reverse relationships
-	OwnedStorages         []Storage          `json:"owned_storages,omitempty" gorm:"foreignKey:Owner"`
-	ModifiedItems         []Item             `json:"modified_items,omitempty" gorm:"foreignKey:LastModified"`
-	ModifiedShoppingItems []ShoppingListItem `json:"modified_shopping_items,omitempty" gorm:"foreignKey:LastModified"`
-	SharedFromMe          []Share            `json:"shared_from_me,omitempty" gorm:"foreignKey:SourceUserID"`
-	SharedToMe            []Share            `json:"shared_to_me,omitempty" gorm:"foreignKey:TargetUserID"`
-	Logs                  []Log              `json:"logs,omitempty" gorm:"foreignKey:UserID"`
+	ID                int        `json:"id" db:"id"`
+	Name              string     `json:"name" db:"name"`
+	Username          string     `json:"username" db:"username"`
+	Email             string     `json:"email" db:"email"`
+	Phone             string     `json:"phone" db:"phone"`
+	HasAvatar         bool       `json:"has_avatar" db:"has_avatar"`
+	Password          string     `json:"-" db:"password"` // Hidden from JSON
+	Salt              string     `json:"-" db:"salt"`     // Hidden from JSON
+	EmailVerified     bool       `json:"email_verified" db:"email_verified"`
+	PhoneVerified     bool       `json:"phone_verified" db:"phone_verified"`
+	TwoFactorEnabled  bool       `json:"two_factor_enabled" db:"two_factor_enabled"`
+	TwoFactorSecret   *string    `json:"-" db:"two_factor_secret"` // Hidden from JSON
+	LastLogin         *time.Time `json:"last_login" db:"last_login"`
+	LoginAttempts     int        `json:"login_attempts" db:"login_attempts"`
+	LockedUntil       *time.Time `json:"locked_until" db:"locked_until"`
+	PasswordChangedAt time.Time  `json:"password_changed_at" db:"password_changed_at"`
+	RoleID            int        `json:"role_id" db:"role_id"`
+	IsSuperuser       bool       `json:"is_superuser" db:"is_superuser"`
+	StatusID          int        `json:"status_id" db:"status_id"`
+	DeletedAt         *time.Time `json:"deleted_at" db:"deleted_at"`
+	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt         *time.Time `json:"updated_at" db:"updated_at"`
 }
 
-// TableName overrides the table name used by User to `users`
-func (User) TableName() string {
-	return "users"
-}
-
-// BeforeCreate GORM hook - runs before creating a user
-func (u *User) BeforeCreate(tx *gorm.DB) error {
-	u.PasswordChangedAt = time.Now()
-	return nil
-}
-
-// BeforeUpdate GORM hook - runs before updating a user
-func (u *User) BeforeUpdate(tx *gorm.DB) error {
-	if tx.Statement.Changed("Password") {
-		u.PasswordChangedAt = time.Now()
+func NewUser() *User {
+	return &User{
+		Phone:             "",
+		HasAvatar:         false,
+		EmailVerified:     false,
+		PhoneVerified:     false,
+		TwoFactorEnabled:  false,
+		LoginAttempts:     0,
+		RoleID:            2,
+		IsSuperuser:       false,
+		StatusID:          1,
+		CreatedAt:         time.Now(),
+		PasswordChangedAt: time.Now(),
 	}
-	return nil
 }

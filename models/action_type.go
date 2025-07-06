@@ -1,12 +1,7 @@
 package models
 
-import "gorm.io/gorm"
-
-// ActionType represents the action type table
+// ActionType represents the type of action performed
 type ActionType struct {
-	gorm.Model
-	Name string `json:"name" gorm:"unique;not null;index" binding:"required"`
-
-	// Reverse relationships
-	Logs []Log `json:"logs,omitempty" gorm:"foreignKey:ActionTypeID"`
+	ID   int    `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
 }

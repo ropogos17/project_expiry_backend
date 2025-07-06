@@ -1,12 +1,10 @@
 package models
 
-import "gorm.io/gorm"
-
-// Announcement represents the announcement table
+// Announcement represents a system announcement
 type Announcement struct {
-	gorm.Model
-	Name         string  `json:"name" gorm:"not null;index" binding:"required"`
-	Description  *string `json:"description" gorm:"type:text"`
-	ExternalLink *string `json:"external_link" gorm:"type:text"`
-	HasRead      bool    `json:"has_read" gorm:"default:false;index"`
+	ID           int     `json:"id" db:"id"`
+	Name         string  `json:"name" db:"name"`
+	Description  *string `json:"description" db:"description"`
+	ExternalLink *string `json:"external_link" db:"external_link"`
+	HasRead      bool    `json:"has_read" db:"has_read"`
 }

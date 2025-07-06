@@ -1,12 +1,7 @@
 package models
 
-import "gorm.io/gorm"
-
-// ItemCategory represents the category table
+// ItemCategory represents an item's category
 type ItemCategory struct {
-	gorm.Model
-	Name string `json:"name" gorm:"not null;index" binding:"required"`
-
-	// Reverse relationships
-	Items []Item `json:"items,omitempty" gorm:"foreignKey:CategoryID"`
+	ID   int    `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
 }

@@ -23,10 +23,6 @@ Thumbs.db
 # Vendor directory (if not committed)
 vendor/
 
-# Dependency directories/tools
-/go.sum
-/go.mod
-
 # Test cache and coverage
 *.coverprofile
 *.tmp

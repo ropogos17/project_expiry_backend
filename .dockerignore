@@ -1,0 +1,10 @@
+*.go
+!main.go
+*.md
+*.log
+tmp/
+.idea/
+.vscode/
+*.exe
+myapp
+.env
