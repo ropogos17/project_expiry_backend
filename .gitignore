@@ -1,0 +1,54 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Output of `go build`, `go run`, etc.
+/build/
+bin/
+*.log
+
+# GoLand project files
+.idea/
+*.iml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Vendor directory (if not committed)
+vendor/
+
+# Dependency directories/tools
+/go.sum
+/go.mod
+
+# Test cache and coverage
+*.coverprofile
+*.tmp
+*.cache
+*.prof
+
+# Environment/config files
+.env
+.env.*
+
+# Node modules (if using JS/TS in frontend within repo)
+node_modules/
+
+# Temporary files
+*.swp
+*.swo
+
+# IDE/editor backups
+*.bak
+*.old
+*.orig
+
+# Static analysis or build tools
+.gocache/
+*.pyc
