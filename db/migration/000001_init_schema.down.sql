@@ -1,27 +1,32 @@
--- Drop foreign keys first to avoid dependency errors
-ALTER TABLE "Log" DROP CONSTRAINT IF EXISTS "Log_user_id_fkey";
-ALTER TABLE "Log" DROP CONSTRAINT IF EXISTS "Log_action_type_fkey";
-ALTER TABLE "Share" DROP CONSTRAINT IF EXISTS "Share_target_user_id_fkey";
-ALTER TABLE "Share" DROP CONSTRAINT IF EXISTS "Share_storage_id_fkey";
-ALTER TABLE "Share" DROP CONSTRAINT IF EXISTS "Share_source_user_id_fkey";
-ALTER TABLE "ShoppingListItem" DROP CONSTRAINT IF EXISTS "ShoppingListItem_last_modified_fkey";
-ALTER TABLE "Storage" DROP CONSTRAINT IF EXISTS "Storage_owner_fkey";
-ALTER TABLE "Item" DROP CONSTRAINT IF EXISTS "Item_last_modified_fkey";
-ALTER TABLE "Item" DROP CONSTRAINT IF EXISTS "Item_storage_id_fkey";
-ALTER TABLE "Item" DROP CONSTRAINT IF EXISTS "Item_category_id_fkey";
-ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "User_status_id_fkey";
-ALTER TABLE "User" DROP CONSTRAINT IF EXISTS "User_role_id_fkey";
+-- Drop foreign key constraints (optional if using CASCADE in DROP TABLE)
+ALTER TABLE "logs" DROP CONSTRAINT IF EXISTS "logs_user_id_fkey";
+ALTER TABLE "logs" DROP CONSTRAINT IF EXISTS "logs_action_type_fkey";
 
--- Drop tables (in reverse order of creation to respect dependencies)
-DROP TABLE IF EXISTS "ActionType";
-DROP TABLE IF EXISTS "Log";
-DROP TABLE IF EXISTS "Languages";
-DROP TABLE IF EXISTS "Share";
-DROP TABLE IF EXISTS "ShoppingListItem";
-DROP TABLE IF EXISTS "Announcement";
-DROP TABLE IF EXISTS "Storage";
-DROP TABLE IF EXISTS "Category";
-DROP TABLE IF EXISTS "Item";
-DROP TABLE IF EXISTS "UserStatus";
-DROP TABLE IF EXISTS "Role";
-DROP TABLE IF EXISTS "User";
+ALTER TABLE "shares" DROP CONSTRAINT IF EXISTS "shares_target_user_id_fkey";
+ALTER TABLE "shares" DROP CONSTRAINT IF EXISTS "shares_storage_id_fkey";
+ALTER TABLE "shares" DROP CONSTRAINT IF EXISTS "shares_source_user_id_fkey";
+
+ALTER TABLE "shopping_list_items" DROP CONSTRAINT IF EXISTS "shopping_list_items_last_modified_fkey";
+
+ALTER TABLE "storages" DROP CONSTRAINT IF EXISTS "storages_owner_fkey";
+
+ALTER TABLE "items" DROP CONSTRAINT IF EXISTS "items_last_modified_fkey";
+ALTER TABLE "items" DROP CONSTRAINT IF EXISTS "items_storage_id_fkey";
+ALTER TABLE "items" DROP CONSTRAINT IF EXISTS "items_category_id_fkey";
+
+ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "users_status_id_fkey";
+ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "users_role_id_fkey";
+
+-- Drop tables in reverse order of dependencies
+DROP TABLE IF EXISTS "logs";
+DROP TABLE IF EXISTS "action_types";
+DROP TABLE IF EXISTS "languages";
+DROP TABLE IF EXISTS "shares";
+DROP TABLE IF EXISTS "shopping_list_items";
+DROP TABLE IF EXISTS "announcements";
+DROP TABLE IF EXISTS "storages";
+DROP TABLE IF EXISTS "categories";
+DROP TABLE IF EXISTS "items";
+DROP TABLE IF EXISTS "user_statuses";
+DROP TABLE IF EXISTS "roles";
+DROP TABLE IF EXISTS "users";
