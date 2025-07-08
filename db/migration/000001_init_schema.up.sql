@@ -20,7 +20,7 @@ CREATE TABLE "User" (
                         "status_id" integer NOT NULL,
                         "deleted_at" timestamp,
                         "created_at" timestamp NOT NULL DEFAULT (now()),
-                        "updated_at" timestamp
+                        "updated_at" timestamp NOT NULL DEFAULT (now())
 );
 
 CREATE TABLE "Role" (
@@ -42,7 +42,7 @@ CREATE TABLE "Item" (
                         "has_image" bool NOT NULL DEFAULT false,
                         "is_deleted" bool NOT NULL DEFAULT false,
                         "stored_at" timestamp NOT NULL DEFAULT (now()),
-                        "updated_at" timestamp,
+                        "updated_at" timestamp NOT NULL DEFAULT (now()),
                         "expires_at" timestamp NOT NULL,
                         "storage_id" integer NOT NULL,
                         "shelf" integer,
@@ -80,7 +80,7 @@ CREATE TABLE "ShoppingListItem" (
                                     "isChecked" bool NOT NULL DEFAULT false,
                                     "isDeleted" bool NOT NULL DEFAULT false,
                                     "created_at" timestamp NOT NULL DEFAULT (now()),
-                                    "updated_at" timestamp,
+                                    "updated_at" timestamp NOT NULL DEFAULT (now()),
                                     "last_modified" integer NOT NULL
 );
 
