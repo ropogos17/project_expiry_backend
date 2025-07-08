@@ -7,8 +7,6 @@ import (
 	"log"
 	"project_expiry_backend/config"
 	"project_expiry_backend/db"
-	"project_expiry_backend/handlers"
-	"project_expiry_backend/routes"
 )
 
 func main() {
@@ -24,10 +22,10 @@ func main() {
 	}
 	defer postgresDB.Close()
 
-	userHandler := handlers.NewUserHandler(postgresDB)
+	//userHandler := handlers.NewUserHandler(postgresDB)
 
 	router := gin.Default()
-	routes.SetupRoutes(router, userHandler)
+	//routes.SetupRoutes(router, userHandler)
 
 	if err := router.Run(":8080"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

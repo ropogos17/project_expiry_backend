@@ -1,0 +1,87 @@
+package test
+
+import (
+	"context"
+	"database/sql"
+	db "project_expiry_backend/db/sqlc"
+	"project_expiry_backend/utils"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func createRandomRole(t *testing.T) db.Role {
+	arg := RandomRole()
+	role, err := testQueries.CreateRole(context.Background(), arg)
+	require.NoError(t, err)
+	require.NotEmpty(t, role)
+
+	require.Equal(t, arg, role.Name)
+	require.NotZero(t, role.ID)
+
+	return role
+}
+
+func TestCreateRole(t *testing.T) {
+	createRandomRole(t)
+}
+
+func TestGetRole(t *testing.T) {
+	role1 := createRandomRole(t)
+	role2, err := testQueries.GetRole(context.Background(), role1.ID)
+
+	require.NoError(t, err)
+	require.NotEmpty(t, role2)
+
+	require.Equal(t, role1.ID, role2.ID)
+	require.Equal(t, role1.Name, role2.Name)
+}
+
+func TestUpdateRole(t *testing.T) {
+	role1 := createRandomRole(t)
+	arg := db.UpdateRoleParams{ID: role1.ID, Name: RandomRole()}
+
+	role2, err := testQueries.UpdateRole(context.Background(), arg)
+
+	require.NoError(t, err)
+	require.NotEmpty(t, role2)
+
+	require.Equal(t, role1.ID, role2.ID)
+	require.Equal(t, arg.Name, role2.Name)
+}
+
+func TestDeleteRole(t *testing.T) {
+	role1 := createRandomRole(t)
+	err := testQueries.DeleteRole(context.Background(), role1.ID)
+	require.NoError(t, err)
+
+	role2, err := testQueries.GetRole(context.Background(), role1.ID)
+	require.Error(t, err)
+	require.EqualError(t, err, sql.ErrNoRows.Error())
+	require.Empty(t, role2)
+}
+
+func TestListRoles(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		createRandomRole(t)
+	}
+
+	arg := db.ListRolesParams{
+		Limit:  5,
+		Offset: 5,
+	}
+
+	roles, err := testQueries.ListRoles(context.Background(), arg)
+	require.NoError(t, err)
+	require.Len(t, roles, 5)
+
+	for _, role := range roles {
+		require.NotEmpty(t, role)
+	}
+}
+
+// Utils
+
+func RandomRole() string {
+	return utils.RandomString(utils.RandomInt(1, 100))
+}
