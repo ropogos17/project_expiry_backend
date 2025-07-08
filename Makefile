@@ -5,8 +5,10 @@ createdb:
 dropdb:
 	docker exec -it project_expiry dropdb -U ropogos project_expiry_db
 migrateup:
-	migrate -path ./migration -database "postgresql://ropogos:S3cr3t@localhost:5432/project_expiry_db?sslmode=disable" -verbose up
+	migrate -path ./db/migration -database "postgresql://ropogos:S3cr3t@localhost:5432/project_expiry_db?sslmode=disable" -verbose up
 migratedown:
-	migrate -path ./migration -database "postgresql://ropogos:S3cr3t@localhost:5432/project_expiry_db?sslmode=disable" -verbose down
+	migrate -path ./db/migration -database "postgresql://ropogos:S3cr3t@localhost:5432/project_expiry_db?sslmode=disable" -verbose down
+sqlc:
+	sqlc generate
 
-.PHONY: createdb dropdb postgres migrateup migratedown
+.PHONY: createdb dropdb postgres migrateup migratedown sqlc
