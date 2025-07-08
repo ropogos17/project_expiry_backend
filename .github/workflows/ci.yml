@@ -11,6 +11,20 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: ropogos
+          POSTGRES_PASSWORD: S3cr3t
+          POSTGRES_DB: project_expiry_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,6 +33,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.24.4"
+
+      - name: Run migrations
+        run: make migrateup
 
       - name: Test
         run: make test
