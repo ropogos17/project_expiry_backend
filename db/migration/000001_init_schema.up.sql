@@ -69,7 +69,7 @@ CREATE TABLE "announcements" (
                                  "name" varchar NOT NULL,
                                  "description" text,
                                  "external_link" text,
-                                 "hasRead" bool NOT NULL DEFAULT false
+                                 "has_read" bool NOT NULL DEFAULT false
 );
 
 CREATE TABLE "shopping_list_items" (
@@ -77,8 +77,8 @@ CREATE TABLE "shopping_list_items" (
                                        "name" varchar NOT NULL,
                                        "description" text,
                                        "quantity" text,
-                                       "isChecked" bool NOT NULL DEFAULT false,
-                                       "isDeleted" bool NOT NULL DEFAULT false,
+                                       "is_checked" bool NOT NULL DEFAULT false,
+                                       "is_deleted" bool NOT NULL DEFAULT false,
                                        "created_at" timestamp NOT NULL DEFAULT (now()),
                                        "updated_at" timestamp NOT NULL DEFAULT (now()),
                                        "last_modified" integer NOT NULL
