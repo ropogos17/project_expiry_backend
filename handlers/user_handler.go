@@ -29,7 +29,7 @@ func (h *UserHandler) GetUsers(c *gin.Context) {
 	users := make([]models.User, 0)
 	for rows.Next() {
 		var user models.User
-		err := rows.Scan(&user)
+		err = rows.Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.Phone, &user.HasAvatar, &user.Password, &user.Salt, &user.EmailVerified, &user.PhoneVerified, &user.TwoFactorEnabled, &user.TwoFactorSecret, &user.LastLogin, &user.LoginAttempts, &user.LockedUntil, &user.PasswordChangedAt, &user.RoleID, &user.IsSuperuser, &user.StatusID, &user.DeletedAt, &user.CreatedAt, &user.UpdatedAt)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -56,7 +56,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 
 	var user models.User
 	row := h.DB.QueryRow("SELECT * FROM users WHERE id = $1", id)
-	err = row.Scan(&user.ID, &user.Name, &user.Email)
+	err = row.Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.Phone, &user.HasAvatar, &user.Password, &user.Salt, &user.EmailVerified, &user.PhoneVerified, &user.TwoFactorEnabled, &user.TwoFactorSecret, &user.LastLogin, &user.LoginAttempts, &user.LockedUntil, &user.PasswordChangedAt, &user.RoleID, &user.IsSuperuser, &user.StatusID, &user.DeletedAt, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
@@ -71,7 +71,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var inputUser DTO.UserCreateRequest
 	if err := c.ShouldBindJSON(&inputUser); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input\n" + err.Error()})
 		return
 	}
 
@@ -95,10 +95,10 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	user.Salt = salt
 
 	err = h.DB.QueryRow(
-		`INSERT INTO users (name, username, email, password, salt, role_id, status_id, created_at, password_changed_at) 
-				VALUES ($1, $2, $3, $4, $5)
+		`INSERT INTO users (name, username, email, phone, password, salt, password_changed_at, role_id, status_id, created_at) 
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 				RETURNING id`,
-		user.Name, user.Username, user.Email, hashedPassword, salt,
+		user.Name, user.Username, user.Email, user.Phone, hashedPassword, salt, user.PasswordChangedAt, user.RoleID, user.StatusID, user.CreatedAt,
 	).Scan(&user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -107,3 +107,5 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"data": user})
 }
+
+func
