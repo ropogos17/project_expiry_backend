@@ -10,5 +10,7 @@ migratedown:
 	migrate -path ./db/migration -database "postgresql://ropogos:***REMOVED***@localhost:5432/project_expiry_db?sslmode=disable" -verbose down
 sqlc:
 	sqlc generate
+test:
+	go test -v -cover -count=1 ./...
 
-.PHONY: createdb dropdb postgres migrateup migratedown sqlc
+.PHONY: createdb dropdb postgres migrateup migratedown sqlc test

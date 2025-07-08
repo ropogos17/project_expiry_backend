@@ -1,5 +1,6 @@
 package handlers
 
+/*
 import (
 	"database/sql"
 	"github.com/gin-gonic/gin"
@@ -95,7 +96,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	user.Salt = salt
 
 	err = h.DB.QueryRow(
-		`INSERT INTO users (name, username, email, phone, password, salt, password_changed_at, role_id, status_id, created_at) 
+		`INSERT INTO users (name, username, email, phone, password, salt, password_changed_at, role_id, status_id, created_at)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 				RETURNING id`,
 		user.Name, user.Username, user.Email, user.Phone, hashedPassword, salt, user.PasswordChangedAt, user.RoleID, user.StatusID, user.CreatedAt,
@@ -107,5 +108,4 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"data": user})
 }
-
-func
+*/
