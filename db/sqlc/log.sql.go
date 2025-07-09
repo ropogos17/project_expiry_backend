@@ -93,7 +93,7 @@ func (q *Queries) ListLogs(ctx context.Context, arg ListLogsParams) ([]Log, erro
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Log
+	items := []Log{}
 	for rows.Next() {
 		var i Log
 		if err := rows.Scan(

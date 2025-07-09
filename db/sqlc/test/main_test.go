@@ -6,22 +6,24 @@ import (
 	"log"
 	"os"
 	db "project_expiry_backend/db/sqlc"
+	"project_expiry_backend/utils"
 	"testing"
 )
 
-const (
-	dbDriver = "postgres"
-	dbSource = "postgresql://ropogos:S3cr3t@localhost:5432/project_expiry_db?sslmode=disable"
-)
-
 var testQueries *db.Queries
+var testDB *sql.DB
 
 func TestMain(m *testing.M) {
-	conn, err := sql.Open(dbDriver, dbSource)
+	config, err := utils.LoadConfig("../../..")
+	if err != nil {
+		log.Fatalf("cannot load config file: %v", err)
+	}
+
+	testDB, err = sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatalf("cannot connect to db: %v", err)
 	}
-	testQueries = db.New(conn)
+	testQueries = db.New(testDB)
 
 	os.Exit(m.Run())
 }

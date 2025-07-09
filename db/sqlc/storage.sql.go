@@ -98,7 +98,7 @@ func (q *Queries) ListStorages(ctx context.Context, arg ListStoragesParams) ([]S
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Storage
+	items := []Storage{}
 	for rows.Next() {
 		var i Storage
 		if err := rows.Scan(
@@ -142,7 +142,7 @@ func (q *Queries) ListStoragesByOwner(ctx context.Context, arg ListStoragesByOwn
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Storage
+	items := []Storage{}
 	for rows.Next() {
 		var i Storage
 		if err := rows.Scan(

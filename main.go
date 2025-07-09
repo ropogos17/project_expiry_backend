@@ -1,34 +1,31 @@
 package main
 
 import (
-	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
+	"database/sql"
+	_ "github.com/lib/pq"
 	"log"
-	"project_expiry_backend/config"
-	"project_expiry_backend/db"
+	"project_expiry_backend/api"
+	sqlc "project_expiry_backend/db/sqlc"
+	"project_expiry_backend/utils"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	cfg := config.LoadConfig()
-
-	postgresDB, err := db.NewPostgresDB(cfg)
+	config, err := utils.LoadConfig(".")
 	if err != nil {
-		log.Fatalf("Failed to connect to postgres database: %v", err)
+		log.Fatalf("Error loading config: %v", err)
 	}
-	defer postgresDB.Close()
 
-	//userHandler := handlers.NewUserHandler(postgresDB)
-
-	router := gin.Default()
-	//routes.SetupRoutes(router, userHandler)
-
-	if err := router.Run(":8080"); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	conn, err := sql.Open(config.DBDriver, config.DBSource)
+	if err != nil {
+		log.Fatalf("cannot connect to db: %v", err)
 	}
-	fmt.Printf("Server started on port 8080")
+
+	store := sqlc.NewStore(conn)
+	server := api.NewServer(store)
+
+	err = server.Start(config.ServerAddress)
+	if err != nil {
+		log.Fatalf("cannot start server: %v", err)
+	}
+	log.Print("server started on ", config.ServerAddress)
 }
