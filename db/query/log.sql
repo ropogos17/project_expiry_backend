@@ -1,6 +1,6 @@
 -- name: CreateLog :one
 INSERT INTO logs (
-    action_type, message, data, user_id
+    action_type_id, message, data, user_id
 )
 VALUES (
            $1, $2, $3, $4
@@ -20,7 +20,7 @@ LIMIT $1 OFFSET $2;
 UPDATE logs
 SET
     created_at = $2,
-    action_type = $3,
+    action_type_id = $3,
     message = $4,
     data = $5,
     user_id = $6

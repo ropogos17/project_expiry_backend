@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"net/http"
 	db "project_expiry_backend/db/sqlc"
 )
@@ -73,7 +72,6 @@ func (server *Server) listRoles(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
 	c.JSON(http.StatusOK, roles)
 }
 
@@ -92,7 +90,6 @@ func (server *Server) deleteRole(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
 	c.JSON(http.StatusOK, struct{}{})
 }
 
@@ -111,7 +108,7 @@ func (server *Server) updateRole(c *gin.Context) {
 	}
 
 	var bodyReq updateRoleBodyRequest
-	if err := c.ShouldBindBodyWith(&bodyReq, binding.JSON); err != nil {
+	if err := c.ShouldBindJSON(&bodyReq); err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}

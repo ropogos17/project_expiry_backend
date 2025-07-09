@@ -13,24 +13,24 @@ import (
 
 const createLog = `-- name: CreateLog :one
 INSERT INTO logs (
-    action_type, message, data, user_id
+    action_type_id, message, data, user_id
 )
 VALUES (
            $1, $2, $3, $4
        )
-RETURNING id, created_at, action_type, message, data, user_id
+RETURNING id, created_at, action_type_id, message, data, user_id
 `
 
 type CreateLogParams struct {
-	ActionType int32          `json:"action_type"`
-	Message    sql.NullString `json:"message"`
-	Data       sql.NullString `json:"data"`
-	UserID     int32          `json:"user_id"`
+	ActionTypeID int32          `json:"action_type_id"`
+	Message      sql.NullString `json:"message"`
+	Data         sql.NullString `json:"data"`
+	UserID       int32          `json:"user_id"`
 }
 
 func (q *Queries) CreateLog(ctx context.Context, arg CreateLogParams) (Log, error) {
 	row := q.db.QueryRowContext(ctx, createLog,
-		arg.ActionType,
+		arg.ActionTypeID,
 		arg.Message,
 		arg.Data,
 		arg.UserID,
@@ -39,7 +39,7 @@ func (q *Queries) CreateLog(ctx context.Context, arg CreateLogParams) (Log, erro
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
-		&i.ActionType,
+		&i.ActionTypeID,
 		&i.Message,
 		&i.Data,
 		&i.UserID,
@@ -58,7 +58,7 @@ func (q *Queries) DeleteLog(ctx context.Context, id int32) error {
 }
 
 const getLog = `-- name: GetLog :one
-SELECT id, created_at, action_type, message, data, user_id FROM logs
+SELECT id, created_at, action_type_id, message, data, user_id FROM logs
 WHERE id = $1 LIMIT 1
 `
 
@@ -68,7 +68,7 @@ func (q *Queries) GetLog(ctx context.Context, id int32) (Log, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
-		&i.ActionType,
+		&i.ActionTypeID,
 		&i.Message,
 		&i.Data,
 		&i.UserID,
@@ -77,7 +77,7 @@ func (q *Queries) GetLog(ctx context.Context, id int32) (Log, error) {
 }
 
 const listLogs = `-- name: ListLogs :many
-SELECT id, created_at, action_type, message, data, user_id FROM logs
+SELECT id, created_at, action_type_id, message, data, user_id FROM logs
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -99,7 +99,7 @@ func (q *Queries) ListLogs(ctx context.Context, arg ListLogsParams) ([]Log, erro
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
-			&i.ActionType,
+			&i.ActionTypeID,
 			&i.Message,
 			&i.Data,
 			&i.UserID,
@@ -121,28 +121,28 @@ const updateLog = `-- name: UpdateLog :one
 UPDATE logs
 SET
     created_at = $2,
-    action_type = $3,
+    action_type_id = $3,
     message = $4,
     data = $5,
     user_id = $6
 WHERE id = $1
-RETURNING id, created_at, action_type, message, data, user_id
+RETURNING id, created_at, action_type_id, message, data, user_id
 `
 
 type UpdateLogParams struct {
-	ID         int32          `json:"id"`
-	CreatedAt  time.Time      `json:"created_at"`
-	ActionType int32          `json:"action_type"`
-	Message    sql.NullString `json:"message"`
-	Data       sql.NullString `json:"data"`
-	UserID     int32          `json:"user_id"`
+	ID           int32          `json:"id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	ActionTypeID int32          `json:"action_type_id"`
+	Message      sql.NullString `json:"message"`
+	Data         sql.NullString `json:"data"`
+	UserID       int32          `json:"user_id"`
 }
 
 func (q *Queries) UpdateLog(ctx context.Context, arg UpdateLogParams) (Log, error) {
 	row := q.db.QueryRowContext(ctx, updateLog,
 		arg.ID,
 		arg.CreatedAt,
-		arg.ActionType,
+		arg.ActionTypeID,
 		arg.Message,
 		arg.Data,
 		arg.UserID,
@@ -151,7 +151,7 @@ func (q *Queries) UpdateLog(ctx context.Context, arg UpdateLogParams) (Log, erro
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
-		&i.ActionType,
+		&i.ActionTypeID,
 		&i.Message,
 		&i.Data,
 		&i.UserID,

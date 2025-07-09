@@ -59,12 +59,12 @@ type Language struct {
 }
 
 type Log struct {
-	ID         int32          `json:"id"`
-	CreatedAt  time.Time      `json:"created_at"`
-	ActionType int32          `json:"action_type"`
-	Message    sql.NullString `json:"message"`
-	Data       sql.NullString `json:"data"`
-	UserID     int32          `json:"user_id"`
+	ID           int32          `json:"id"`
+	CreatedAt    time.Time      `json:"created_at"`
+	ActionTypeID int32          `json:"action_type_id"`
+	Message      sql.NullString `json:"message"`
+	Data         sql.NullString `json:"data"`
+	UserID       int32          `json:"user_id"`
 }
 
 type Role struct {
