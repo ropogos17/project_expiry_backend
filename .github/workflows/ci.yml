@@ -1,10 +1,10 @@
 name: ci-test
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: {}
+  # push:
+  #   branches: [ "main" ]
+  # pull_request:
+  #   branches: [ "main" ]
 
 jobs:
 
@@ -44,6 +44,8 @@ jobs:
 
       - name: Run migrations
         run: make migrateup
+
+      - name: Install golang-viper
 
       - name: Test
         run: make test
