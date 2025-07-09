@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	CreateActionType(ctx context.Context, name string) (ActionType, error)
 	CreateAnnouncement(ctx context.Context, arg CreateAnnouncementParams) (Announcement, error)
 	CreateCategory(ctx context.Context, name string) (Category, error)
 	CreateItem(ctx context.Context, arg CreateItemParams) (Item, error)
@@ -20,6 +21,7 @@ type Querier interface {
 	CreateStatus(ctx context.Context, name string) (UserStatus, error)
 	CreateStorage(ctx context.Context, arg CreateStorageParams) (Storage, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteActionType(ctx context.Context, id int32) error
 	DeleteAnnouncement(ctx context.Context, id int32) error
 	DeleteCategory(ctx context.Context, id int32) error
 	DeleteItem(ctx context.Context, id int32) error
@@ -31,6 +33,7 @@ type Querier interface {
 	DeleteStatus(ctx context.Context, id int32) error
 	DeleteStorage(ctx context.Context, id int32) error
 	DeleteUser(ctx context.Context, id int32) error
+	GetActionType(ctx context.Context, id int32) (ActionType, error)
 	GetAnnouncement(ctx context.Context, id int32) (Announcement, error)
 	GetCategory(ctx context.Context, id int32) (Category, error)
 	GetItem(ctx context.Context, id int32) (Item, error)
@@ -44,6 +47,7 @@ type Querier interface {
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	ListActionTypes(ctx context.Context, arg ListActionTypesParams) ([]ActionType, error)
 	ListAnnouncements(ctx context.Context, arg ListAnnouncementsParams) ([]Announcement, error)
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]Category, error)
 	ListItems(ctx context.Context, arg ListItemsParams) ([]Item, error)
@@ -56,6 +60,7 @@ type Querier interface {
 	ListStorages(ctx context.Context, arg ListStoragesParams) ([]Storage, error)
 	ListStoragesByOwner(ctx context.Context, arg ListStoragesByOwnerParams) ([]Storage, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	UpdateActionType(ctx context.Context, arg UpdateActionTypeParams) (ActionType, error)
 	UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncementParams) (Announcement, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
 	UpdateItem(ctx context.Context, arg UpdateItemParams) (Item, error)
