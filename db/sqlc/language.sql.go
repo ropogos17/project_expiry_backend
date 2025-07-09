@@ -117,7 +117,7 @@ func (q *Queries) ListLanguages(ctx context.Context, arg ListLanguagesParams) ([
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Language
+	items := []Language{}
 	for rows.Next() {
 		var i Language
 		if err := rows.Scan(

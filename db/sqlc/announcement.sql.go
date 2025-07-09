@@ -90,7 +90,7 @@ func (q *Queries) ListAnnouncements(ctx context.Context, arg ListAnnouncementsPa
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Announcement
+	items := []Announcement{}
 	for rows.Next() {
 		var i Announcement
 		if err := rows.Scan(

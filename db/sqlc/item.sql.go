@@ -118,7 +118,7 @@ func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]Item, e
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Item
+	items := []Item{}
 	for rows.Next() {
 		var i Item
 		if err := rows.Scan(

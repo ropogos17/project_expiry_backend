@@ -92,7 +92,7 @@ func (q *Queries) ListShares(ctx context.Context, arg ListSharesParams) ([]Share
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Share
+	items := []Share{}
 	for rows.Next() {
 		var i Share
 		if err := rows.Scan(

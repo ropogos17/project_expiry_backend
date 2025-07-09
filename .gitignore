@@ -32,6 +32,7 @@ vendor/
 # Environment/config files
 .env
 .env.*
+*.env
 
 # Node modules (if using JS/TS in frontend within repo)
 node_modules/
