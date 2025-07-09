@@ -18,9 +18,9 @@ type Querier interface {
 	CreateRole(ctx context.Context, name string) (Role, error)
 	CreateShare(ctx context.Context, arg CreateShareParams) (Share, error)
 	CreateShoppingListItem(ctx context.Context, arg CreateShoppingListItemParams) (ShoppingListItem, error)
-	CreateStatus(ctx context.Context, name string) (UserStatus, error)
 	CreateStorage(ctx context.Context, arg CreateStorageParams) (Storage, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateUserStatus(ctx context.Context, name string) (UserStatus, error)
 	DeleteActionType(ctx context.Context, id int32) error
 	DeleteAnnouncement(ctx context.Context, id int32) error
 	DeleteCategory(ctx context.Context, id int32) error
@@ -30,9 +30,9 @@ type Querier interface {
 	DeleteRole(ctx context.Context, id int32) error
 	DeleteShare(ctx context.Context, id int32) error
 	DeleteShoppingListItem(ctx context.Context, id int32) error
-	DeleteStatus(ctx context.Context, id int32) error
 	DeleteStorage(ctx context.Context, id int32) error
 	DeleteUser(ctx context.Context, id int32) error
+	DeleteUserStatus(ctx context.Context, id int32) error
 	GetActionType(ctx context.Context, id int32) (ActionType, error)
 	GetAnnouncement(ctx context.Context, id int32) (Announcement, error)
 	GetCategory(ctx context.Context, id int32) (Category, error)
@@ -42,11 +42,11 @@ type Querier interface {
 	GetRole(ctx context.Context, id int32) (Role, error)
 	GetShare(ctx context.Context, id int32) (Share, error)
 	GetShoppingListItem(ctx context.Context, id int32) (ShoppingListItem, error)
-	GetStatus(ctx context.Context, id int32) (UserStatus, error)
 	GetStorage(ctx context.Context, id int32) (Storage, error)
 	GetUser(ctx context.Context, id int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	GetUserStatus(ctx context.Context, id int32) (UserStatus, error)
 	ListActionTypes(ctx context.Context, arg ListActionTypesParams) ([]ActionType, error)
 	ListAnnouncements(ctx context.Context, arg ListAnnouncementsParams) ([]Announcement, error)
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]Category, error)
@@ -56,9 +56,9 @@ type Querier interface {
 	ListRoles(ctx context.Context, arg ListRolesParams) ([]Role, error)
 	ListShares(ctx context.Context, arg ListSharesParams) ([]Share, error)
 	ListShoppingListItems(ctx context.Context, arg ListShoppingListItemsParams) ([]ShoppingListItem, error)
-	ListStatuses(ctx context.Context, arg ListStatusesParams) ([]UserStatus, error)
 	ListStorages(ctx context.Context, arg ListStoragesParams) ([]Storage, error)
 	ListStoragesByOwner(ctx context.Context, arg ListStoragesByOwnerParams) ([]Storage, error)
+	ListUserStatuses(ctx context.Context, arg ListUserStatusesParams) ([]UserStatus, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	UpdateActionType(ctx context.Context, arg UpdateActionTypeParams) (ActionType, error)
 	UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncementParams) (Announcement, error)
@@ -69,9 +69,9 @@ type Querier interface {
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
 	UpdateShare(ctx context.Context, arg UpdateShareParams) (Share, error)
 	UpdateShoppingListItem(ctx context.Context, arg UpdateShoppingListItemParams) (ShoppingListItem, error)
-	UpdateStatus(ctx context.Context, arg UpdateStatusParams) (UserStatus, error)
 	UpdateStorage(ctx context.Context, arg UpdateStorageParams) (Storage, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) (UserStatus, error)
 }
 
 var _ Querier = (*Queries)(nil)

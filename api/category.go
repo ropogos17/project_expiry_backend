@@ -67,12 +67,12 @@ func (server *Server) listCategories(c *gin.Context) {
 		Offset: (req.PageID - 1) * req.PageSize,
 	}
 
-	categorys, err := server.store.ListCategories(c, arg)
+	categories, err := server.store.ListCategories(c, arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	c.JSON(http.StatusOK, categorys)
+	c.JSON(http.StatusOK, categories)
 }
 
 type deleteCategoryRequest struct {

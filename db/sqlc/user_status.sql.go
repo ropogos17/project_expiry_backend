@@ -9,54 +9,54 @@ import (
 	"context"
 )
 
-const createStatus = `-- name: CreateStatus :one
+const createUserStatus = `-- name: CreateUserStatus :one
 INSERT INTO user_statuses (name)
 VALUES ($1)
 RETURNING id, name
 `
 
-func (q *Queries) CreateStatus(ctx context.Context, name string) (UserStatus, error) {
-	row := q.db.QueryRowContext(ctx, createStatus, name)
+func (q *Queries) CreateUserStatus(ctx context.Context, name string) (UserStatus, error) {
+	row := q.db.QueryRowContext(ctx, createUserStatus, name)
 	var i UserStatus
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
-const deleteStatus = `-- name: DeleteStatus :exec
+const deleteUserStatus = `-- name: DeleteUserStatus :exec
 DELETE FROM user_statuses
 WHERE id = $1
 `
 
-func (q *Queries) DeleteStatus(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteStatus, id)
+func (q *Queries) DeleteUserStatus(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteUserStatus, id)
 	return err
 }
 
-const getStatus = `-- name: GetStatus :one
+const getUserStatus = `-- name: GetUserStatus :one
 SELECT id, name FROM user_statuses
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetStatus(ctx context.Context, id int32) (UserStatus, error) {
-	row := q.db.QueryRowContext(ctx, getStatus, id)
+func (q *Queries) GetUserStatus(ctx context.Context, id int32) (UserStatus, error) {
+	row := q.db.QueryRowContext(ctx, getUserStatus, id)
 	var i UserStatus
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
-const listStatuses = `-- name: ListStatuses :many
+const listUserStatuses = `-- name: ListUserStatuses :many
 SELECT id, name FROM user_statuses
 ORDER BY id
 LIMIT $1 OFFSET $2
 `
 
-type ListStatusesParams struct {
+type ListUserStatusesParams struct {
 	Limit  int32 `json:"limit"`
 	Offset int32 `json:"offset"`
 }
 
-func (q *Queries) ListStatuses(ctx context.Context, arg ListStatusesParams) ([]UserStatus, error) {
-	rows, err := q.db.QueryContext(ctx, listStatuses, arg.Limit, arg.Offset)
+func (q *Queries) ListUserStatuses(ctx context.Context, arg ListUserStatusesParams) ([]UserStatus, error) {
+	rows, err := q.db.QueryContext(ctx, listUserStatuses, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -78,20 +78,20 @@ func (q *Queries) ListStatuses(ctx context.Context, arg ListStatusesParams) ([]U
 	return items, nil
 }
 
-const updateStatus = `-- name: UpdateStatus :one
+const updateUserStatus = `-- name: UpdateUserStatus :one
 UPDATE user_statuses
 SET name = $2
 WHERE id = $1
 RETURNING id, name
 `
 
-type UpdateStatusParams struct {
+type UpdateUserStatusParams struct {
 	ID   int32  `json:"id"`
 	Name string `json:"name"`
 }
 
-func (q *Queries) UpdateStatus(ctx context.Context, arg UpdateStatusParams) (UserStatus, error) {
-	row := q.db.QueryRowContext(ctx, updateStatus, arg.ID, arg.Name)
+func (q *Queries) UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) (UserStatus, error) {
+	row := q.db.QueryRowContext(ctx, updateUserStatus, arg.ID, arg.Name)
 	var i UserStatus
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
