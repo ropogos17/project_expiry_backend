@@ -24,7 +24,7 @@ type createLanguageRequest struct {
 
 func (server *Server) createLanguage(c *gin.Context) {
 	var req createLanguageRequest
-	if err := c.ShouldBindQuery(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
