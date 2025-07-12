@@ -19,15 +19,14 @@ INSERT INTO users (
     phone,
     has_avatar,
     password,
-    salt,
     role_id,
     is_superuser,
     status_id
 )
 VALUES (
-           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+           $1, $2, $3, $4, $5, $6, $7, $8, $9
        )
-RETURNING id, name, username, email, phone, has_avatar, password, salt, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at
+RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -37,7 +36,6 @@ type CreateUserParams struct {
 	Phone       string `json:"phone"`
 	HasAvatar   bool   `json:"has_avatar"`
 	Password    string `json:"password"`
-	Salt        string `json:"salt"`
 	RoleID      int32  `json:"role_id"`
 	IsSuperuser bool   `json:"is_superuser"`
 	StatusID    int32  `json:"status_id"`
@@ -51,7 +49,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Phone,
 		arg.HasAvatar,
 		arg.Password,
-		arg.Salt,
 		arg.RoleID,
 		arg.IsSuperuser,
 		arg.StatusID,
@@ -65,7 +62,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Phone,
 		&i.HasAvatar,
 		&i.Password,
-		&i.Salt,
 		&i.EmailVerified,
 		&i.PhoneVerified,
 		&i.TwoFactorEnabled,
@@ -95,7 +91,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, name, username, email, phone, has_avatar, password, salt, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
+SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
 WHERE id = $1 LIMIT 1
 `
 
@@ -110,7 +106,6 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 		&i.Phone,
 		&i.HasAvatar,
 		&i.Password,
-		&i.Salt,
 		&i.EmailVerified,
 		&i.PhoneVerified,
 		&i.TwoFactorEnabled,
@@ -130,7 +125,7 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, username, email, phone, has_avatar, password, salt, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
+SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
 WHERE email = $1 LIMIT 1
 `
 
@@ -145,7 +140,6 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Phone,
 		&i.HasAvatar,
 		&i.Password,
-		&i.Salt,
 		&i.EmailVerified,
 		&i.PhoneVerified,
 		&i.TwoFactorEnabled,
@@ -165,7 +159,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, name, username, email, phone, has_avatar, password, salt, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
+SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
 WHERE username = $1 LIMIT 1
 `
 
@@ -180,7 +174,6 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Phone,
 		&i.HasAvatar,
 		&i.Password,
-		&i.Salt,
 		&i.EmailVerified,
 		&i.PhoneVerified,
 		&i.TwoFactorEnabled,
@@ -200,7 +193,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, name, username, email, phone, has_avatar, password, salt, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
+SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
 ORDER BY id
 LIMIT $1 OFFSET $2
 `
@@ -227,7 +220,6 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.Phone,
 			&i.HasAvatar,
 			&i.Password,
-			&i.Salt,
 			&i.EmailVerified,
 			&i.PhoneVerified,
 			&i.TwoFactorEnabled,
@@ -264,22 +256,21 @@ UPDATE users SET
                  phone = $5,
                  has_avatar = $6,
                  password = $7,
-                 salt = $8,
-                 email_verified = $9,
-                 phone_verified = $10,
-                 two_factor_enabled = $11,
-                 two_factor_secret = $12,
-                 last_login = $13,
-                 login_attempts = $14,
-                 locked_until = $15,
-                 password_changed_at = $16,
-                 role_id = $17,
-                 is_superuser = $18,
-                 status_id = $19,
-                 deleted_at = $20,
-                 updated_at = $21
+                 email_verified = $8,
+                 phone_verified = $9,
+                 two_factor_enabled = $10,
+                 two_factor_secret = $11,
+                 last_login = $12,
+                 login_attempts = $13,
+                 locked_until = $14,
+                 password_changed_at = $15,
+                 role_id = $16,
+                 is_superuser = $17,
+                 status_id = $18,
+                 deleted_at = $19,
+                 updated_at = $20
 WHERE id = $1
-RETURNING id, name, username, email, phone, has_avatar, password, salt, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at
+RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -290,7 +281,6 @@ type UpdateUserParams struct {
 	Phone             string         `json:"phone"`
 	HasAvatar         bool           `json:"has_avatar"`
 	Password          string         `json:"password"`
-	Salt              string         `json:"salt"`
 	EmailVerified     bool           `json:"email_verified"`
 	PhoneVerified     bool           `json:"phone_verified"`
 	TwoFactorEnabled  bool           `json:"two_factor_enabled"`
@@ -315,7 +305,6 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.Phone,
 		arg.HasAvatar,
 		arg.Password,
-		arg.Salt,
 		arg.EmailVerified,
 		arg.PhoneVerified,
 		arg.TwoFactorEnabled,
@@ -339,7 +328,6 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Phone,
 		&i.HasAvatar,
 		&i.Password,
-		&i.Salt,
 		&i.EmailVerified,
 		&i.PhoneVerified,
 		&i.TwoFactorEnabled,

@@ -111,7 +111,6 @@ type User struct {
 	Phone             string         `json:"phone"`
 	HasAvatar         bool           `json:"has_avatar"`
 	Password          string         `json:"password"`
-	Salt              string         `json:"salt"`
 	EmailVerified     bool           `json:"email_verified"`
 	PhoneVerified     bool           `json:"phone_verified"`
 	TwoFactorEnabled  bool           `json:"two_factor_enabled"`
