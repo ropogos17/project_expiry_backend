@@ -1,17 +1,28 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	db "project_expiry_backend/db/sqlc"
+	"project_expiry_backend/token"
 )
 
 type Server struct {
-	store  *db.Store
-	router *gin.Engine
+	store      *db.Store
+	tokenMaker token.Maker
+	router     *gin.Engine
 }
 
-func NewServer(store *db.Store) *Server {
-	server := &Server{store: store}
+func NewServer(store *db.Store) (*Server, error) {
+	// TODO: replace the symmetricKey with a real one
+	tokenMaker, err := token.NewPasetoMaker("")
+	if err != nil {
+		return nil, fmt.Errorf("Cannot create token maker: %w", err)
+	}
+	server := &Server{
+		store:      store,
+		tokenMaker: tokenMaker,
+	}
 	router := gin.Default()
 
 	router.POST("/roles", server.createRole)
