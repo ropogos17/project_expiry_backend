@@ -6,6 +6,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
@@ -15,6 +17,7 @@ type Querier interface {
 	CreateItem(ctx context.Context, arg CreateItemParams) (Item, error)
 	CreateLanguage(ctx context.Context, arg CreateLanguageParams) (Language, error)
 	CreateLog(ctx context.Context, arg CreateLogParams) (Log, error)
+	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateRole(ctx context.Context, name string) (Role, error)
 	CreateShare(ctx context.Context, arg CreateShareParams) (Share, error)
 	CreateShoppingListItem(ctx context.Context, arg CreateShoppingListItemParams) (ShoppingListItem, error)
@@ -27,6 +30,7 @@ type Querier interface {
 	DeleteItem(ctx context.Context, id int32) error
 	DeleteLanguage(ctx context.Context, id int32) error
 	DeleteLog(ctx context.Context, id int32) error
+	DeleteRefreshToken(ctx context.Context, id uuid.UUID) error
 	DeleteRole(ctx context.Context, id int32) error
 	DeleteShare(ctx context.Context, id int32) error
 	DeleteShoppingListItem(ctx context.Context, id int32) error
@@ -39,6 +43,7 @@ type Querier interface {
 	GetItem(ctx context.Context, id int32) (Item, error)
 	GetLanguage(ctx context.Context, id int32) (Language, error)
 	GetLog(ctx context.Context, id int32) (Log, error)
+	GetRefreshToken(ctx context.Context, id uuid.UUID) (RefreshToken, error)
 	GetRole(ctx context.Context, id int32) (Role, error)
 	GetShare(ctx context.Context, id int32) (Share, error)
 	GetShoppingListItem(ctx context.Context, id int32) (ShoppingListItem, error)
@@ -53,6 +58,8 @@ type Querier interface {
 	ListItems(ctx context.Context, arg ListItemsParams) ([]Item, error)
 	ListLanguages(ctx context.Context, arg ListLanguagesParams) ([]Language, error)
 	ListLogs(ctx context.Context, arg ListLogsParams) ([]Log, error)
+	ListRefreshTokens(ctx context.Context, arg ListRefreshTokensParams) ([]RefreshToken, error)
+	ListRefreshTokensByUser(ctx context.Context, arg ListRefreshTokensByUserParams) ([]RefreshToken, error)
 	ListRoles(ctx context.Context, arg ListRolesParams) ([]Role, error)
 	ListShares(ctx context.Context, arg ListSharesParams) ([]Share, error)
 	ListShoppingListItems(ctx context.Context, arg ListShoppingListItemsParams) ([]ShoppingListItem, error)
@@ -66,6 +73,7 @@ type Querier interface {
 	UpdateItem(ctx context.Context, arg UpdateItemParams) (Item, error)
 	UpdateLanguage(ctx context.Context, arg UpdateLanguageParams) (Language, error)
 	UpdateLog(ctx context.Context, arg UpdateLogParams) (Log, error)
+	UpdateRefreshToken(ctx context.Context, arg UpdateRefreshTokenParams) (RefreshToken, error)
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
 	UpdateShare(ctx context.Context, arg UpdateShareParams) (Share, error)
 	UpdateShoppingListItem(ctx context.Context, arg UpdateShoppingListItemParams) (ShoppingListItem, error)

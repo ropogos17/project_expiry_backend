@@ -7,6 +7,8 @@ package db
 import (
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type ActionType struct {
@@ -65,6 +67,13 @@ type Log struct {
 	Message      sql.NullString `json:"message"`
 	Data         sql.NullString `json:"data"`
 	UserID       int32          `json:"user_id"`
+}
+
+type RefreshToken struct {
+	ID        uuid.UUID `json:"id"`
+	UserID    int32     `json:"user_id"`
+	IssuedAt  time.Time `json:"issued_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type Role struct {
