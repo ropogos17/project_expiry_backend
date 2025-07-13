@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"errors"
+	"github.com/google/uuid"
 	"net/http"
 	"time"
 
@@ -259,14 +260,35 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 		return
 	}
 
-	payload, err := server.tokenMaker.VerifyToken(req.RefreshToken)
+	tokenID, err := uuid.Parse(req.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	refreshToken, err := server.store.GetRefreshToken(ctx, tokenID)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 
+	if time.Now().After(refreshToken.ExpiresAt) {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("refresh token expired")))
+		return
+	}
+
+	user, err := server.store.GetUser(ctx, refreshToken.UserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(errors.New("invalid refresh token")))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
 	accessToken, err := server.tokenMaker.CreateToken(
-		payload.Username,
+		user.Username,
 		server.config.AccessTokenDuration,
 	)
 	if err != nil {
@@ -278,4 +300,18 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 		AccessToken: accessToken,
 	}
 	ctx.JSON(http.StatusOK, rsp)
+}
+
+type logoutUserRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+func (server *Server) logoutUser(ctx *gin.Context) {
+	var req logoutUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	tokenID
 }
