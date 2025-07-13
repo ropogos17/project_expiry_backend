@@ -288,7 +288,7 @@ type UpdateUserParams struct {
 	LastLogin         sql.NullTime   `json:"last_login"`
 	LoginAttempts     int32          `json:"login_attempts"`
 	LockedUntil       sql.NullTime   `json:"locked_until"`
-	PasswordChangedAt time.Time      `json:"password_changed_at"`
+	PasswordChangedAt sql.NullTime   `json:"password_changed_at"`
 	RoleID            int32          `json:"role_id"`
 	IsSuperuser       bool           `json:"is_superuser"`
 	StatusID          int32          `json:"status_id"`

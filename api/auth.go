@@ -101,9 +101,9 @@ func (server *Server) registerUser(ctx *gin.Context) {
 		Phone:       "",
 		HasAvatar:   false,
 		Password:    hashedPassword,
-		RoleID:      0, // TODO: change this
+		RoleID:      7, // TODO: change this
 		IsSuperuser: false,
-		StatusID:    0, // TODO: change this
+		StatusID:    1,
 	}
 
 	user, err := server.store.CreateUser(ctx, arg)
