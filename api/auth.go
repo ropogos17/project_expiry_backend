@@ -121,8 +121,8 @@ type loginUserRequest struct {
 }
 
 type loginUserResponse struct {
-	AccessToken string       `json:"access_token"`
-	User        userResponse `json:"user"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (server *Server) loginUser(ctx *gin.Context) {
@@ -157,85 +157,21 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
+	refreshToken := db.CreateRefreshTokenParams{
+		UserID:    user.ID,
+		IssuedAt:  time.Now(),
+		ExpiresAt: time.Now().Add(server.config.RefreshTokenDuration),
+	}
+	refreshTokenRes, err := server.store.CreateRefreshToken(ctx, refreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
 	rsp := loginUserResponse{
-		AccessToken: accessToken,
-		User:        newUserResponse(user),
+		AccessToken:  accessToken,
+		RefreshToken: refreshTokenRes.ID.String(),
 	}
-	ctx.JSON(http.StatusOK, rsp)
-}
-
-func (server *Server) getCurrentUser(ctx *gin.Context) {
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-
-	user, err := server.store.GetUserByUsername(ctx, authPayload.Username)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			ctx.JSON(http.StatusNotFound, errorResponse(errors.New("user not found")))
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	rsp := newUserResponse(user)
-	ctx.JSON(http.StatusOK, rsp)
-}
-
-type updateProfileRequest struct {
-	Name  string `json:"name" binding:"required"`
-	Email string `json:"email" binding:"required,email"`
-	Phone string `json:"phone" binding:"required"`
-}
-
-func (server *Server) updateProfile(ctx *gin.Context) {
-	var req updateProfileRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-
-	user, err := server.store.GetUserByUsername(ctx, authPayload.Username)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			ctx.JSON(http.StatusNotFound, errorResponse(errors.New("user not found")))
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	arg := db.UpdateUserParams{
-		ID:                user.ID,
-		Name:              req.Name,
-		Username:          user.Username,
-		Email:             req.Email,
-		Phone:             req.Phone,
-		HasAvatar:         user.HasAvatar,
-		Password:          user.Password,
-		EmailVerified:     user.EmailVerified,
-		PhoneVerified:     user.PhoneVerified,
-		TwoFactorEnabled:  user.TwoFactorEnabled,
-		TwoFactorSecret:   user.TwoFactorSecret,
-		LastLogin:         user.LastLogin,
-		LoginAttempts:     user.LoginAttempts,
-		LockedUntil:       user.LockedUntil,
-		PasswordChangedAt: user.PasswordChangedAt,
-		RoleID:            user.RoleID,
-		IsSuperuser:       user.IsSuperuser,
-		StatusID:          user.StatusID,
-		DeletedAt:         user.DeletedAt,
-		UpdatedAt:         time.Now(),
-	}
-
-	updatedUser, err := server.store.UpdateUser(ctx, arg)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	rsp := newUserResponse(updatedUser)
 	ctx.JSON(http.StatusOK, rsp)
 }
 
