@@ -302,24 +302,30 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, rsp)
 }
 
-type logoutUserRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
-}
-
 func (server *Server) logoutUser(ctx *gin.Context) {
-	var req logoutUserRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
 
-	tokenID, err := uuid.Parse(req.RefreshToken)
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	user, err := server.store.GetUserByUsername(ctx, authPayload.Username)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
 
-	err = server.store.DeleteRefreshToken(ctx, tokenID)
+	refreshTokens, err := server.store.ListRefreshTokensByUser(ctx, db.ListRefreshTokensByUserParams{
+		UserID: user.ID,
+		Limit:  1,
+		Offset: 1,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(errors.New("invalid refresh token")))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	err = server.store.DeleteRefreshToken(ctx, refreshTokens[0].ID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

@@ -16,7 +16,6 @@ type Server struct {
 }
 
 func NewServer(config utils.Config, store *db.Store) (*Server, error) {
-	// TODO: replace the symmetricKey with a real one
 	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot create token maker: %w", err)
