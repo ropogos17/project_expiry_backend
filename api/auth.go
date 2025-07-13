@@ -313,5 +313,17 @@ func (server *Server) logoutUser(ctx *gin.Context) {
 		return
 	}
 
-	tokenID
+	tokenID, err := uuid.Parse(req.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	err = server.store.DeleteRefreshToken(ctx, tokenID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "logout successfully"})
 }
