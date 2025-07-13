@@ -26,16 +26,35 @@ func NewServer(config utils.Config, store *db.Store) (*Server, error) {
 		tokenMaker: tokenMaker,
 		config:     config,
 	}
+
+	server.SetupRouter()
+	return server, nil
+}
+
+func (server *Server) SetupRouter() {
 	router := gin.Default()
 
-	router.POST("/roles", server.createRole)
-	router.GET("/roles/:id", server.getRole)
-	router.GET("/roles", server.listRoles)
-	router.DELETE("/roles", server.deleteRole)
-	router.PUT("/roles/:id", server.updateRole)
+	// Auth routes (public)
+	authRoutes := router.Group("/auth")
+	{
+		authRoutes.POST("/register", server.registerUser)
+		authRoutes.POST("/login", server.loginUser)
+		authRoutes.POST("/refresh", server.refreshToken)
+	}
+
+	// Protected routes
+	authMiddleware := authMiddleware(server.tokenMaker)
+	protectedRoutes := router.Group("/").Use(authMiddleware)
+	{
+		// Role routes
+		protectedRoutes.POST("/roles", server.createRole)
+		protectedRoutes.GET("/roles/:id", server.getRole)
+		protectedRoutes.GET("/roles", server.listRoles)
+		protectedRoutes.DELETE("/roles/:id", server.deleteRole)
+		protectedRoutes.PUT("/roles/:id", server.updateRole)
+	}
 
 	server.router = router
-	return server, nil
 }
 
 func (server *Server) Start(address string) error {
