@@ -18,7 +18,7 @@ const (
 
 // AuthMiddleware creates a gin middleware for authorization
 func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
-	return gin.HandlerFunc(func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
 		authorizationHeader := ctx.GetHeader(authorizationHeaderKey)
 
 		if len(authorizationHeader) == 0 {
@@ -50,5 +50,5 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 
 		ctx.Set(authorizationPayloadKey, payload)
 		ctx.Next()
-	})
+	}
 }

@@ -33,7 +33,7 @@ type userResponse struct {
 	LastLogin         *time.Time `json:"last_login"`
 	LoginAttempts     int32      `json:"login_attempts"`
 	LockedUntil       *time.Time `json:"locked_until"`
-	PasswordChangedAt time.Time  `json:"password_changed_at"`
+	PasswordChangedAt *time.Time `json:"password_changed_at"`
 	RoleID            int32      `json:"role_id"`
 	IsSuperuser       bool       `json:"is_superuser"`
 	StatusID          int32      `json:"status_id"`
@@ -58,6 +58,11 @@ func newUserResponse(user db.User) userResponse {
 		deletedAt = &user.DeletedAt.Time
 	}
 
+	var passwordChangedAt *time.Time
+	if user.PasswordChangedAt.Valid {
+		passwordChangedAt = &user.PasswordChangedAt.Time
+	}
+
 	return userResponse{
 		ID:                user.ID,
 		Name:              user.Name,
@@ -71,7 +76,7 @@ func newUserResponse(user db.User) userResponse {
 		LastLogin:         lastLogin,
 		LoginAttempts:     user.LoginAttempts,
 		LockedUntil:       lockedUntil,
-		PasswordChangedAt: user.PasswordChangedAt,
+		PasswordChangedAt: passwordChangedAt,
 		RoleID:            user.RoleID,
 		IsSuperuser:       user.IsSuperuser,
 		StatusID:          user.StatusID,
@@ -228,7 +233,7 @@ func (server *Server) changePassword(ctx *gin.Context) {
 		LastLogin:         user.LastLogin,
 		LoginAttempts:     user.LoginAttempts,
 		LockedUntil:       user.LockedUntil,
-		PasswordChangedAt: now,
+		PasswordChangedAt: sql.NullTime{Valid: true, Time: now},
 		RoleID:            user.RoleID,
 		IsSuperuser:       user.IsSuperuser,
 		StatusID:          user.StatusID,

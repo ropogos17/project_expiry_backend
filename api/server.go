@@ -32,6 +32,7 @@ func NewServer(config utils.Config, store *db.Store) (*Server, error) {
 
 func (server *Server) SetupRouter() {
 	router := gin.Default()
+	authMiddleware := authMiddleware(server.tokenMaker)
 
 	// Auth routes (public)
 	authRoutes := router.Group("/auth")
@@ -39,10 +40,14 @@ func (server *Server) SetupRouter() {
 		authRoutes.POST("/register", server.registerUser)
 		authRoutes.POST("/login", server.loginUser)
 		authRoutes.POST("/refresh", server.refreshToken)
+		authRoutes.POST("/logout", server.logoutUser)
+		pw := router.Group("/auth").Use(authMiddleware)
+		{
+			pw.PUT("/change-password", server.changePassword)
+		}
 	}
 
 	// Protected routes
-	authMiddleware := authMiddleware(server.tokenMaker)
 	protectedRoutes := router.Group("/").Use(authMiddleware)
 	{
 		// Role routes
