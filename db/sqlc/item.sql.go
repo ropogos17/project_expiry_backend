@@ -13,11 +13,11 @@ import (
 
 const createItem = `-- name: CreateItem :one
 INSERT INTO items (
-    name, category_id, description, quantity, has_image, expires_at, storage_id, shelf, last_modified
+    name, category_id, description, quantity, has_image, stored_at, expires_at, storage_id, shelf, last_modified
 )
 VALUES (
            $1, $2, $3, $4, $5, $6,
-           $7, $8, $9
+           $7, $8, $9, $10
        )
 RETURNING id, name, category_id, description, quantity, has_image, is_deleted, stored_at, updated_at, expires_at, storage_id, shelf, last_modified
 `
@@ -28,6 +28,7 @@ type CreateItemParams struct {
 	Description  sql.NullString `json:"description"`
 	Quantity     sql.NullString `json:"quantity"`
 	HasImage     bool           `json:"has_image"`
+	StoredAt     time.Time      `json:"stored_at"`
 	ExpiresAt    time.Time      `json:"expires_at"`
 	StorageID    int32          `json:"storage_id"`
 	Shelf        sql.NullInt32  `json:"shelf"`
@@ -41,6 +42,7 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (Item, e
 		arg.Description,
 		arg.Quantity,
 		arg.HasImage,
+		arg.StoredAt,
 		arg.ExpiresAt,
 		arg.StorageID,
 		arg.Shelf,
@@ -68,7 +70,7 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (Item, e
 const deleteItem = `-- name: DeleteItem :exec
 UPDATE items
 SET is_deleted = true, updated_at = NOW()
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) DeleteItem(ctx context.Context, id int32) error {
@@ -104,7 +106,7 @@ func (q *Queries) GetItem(ctx context.Context, id int32) (Item, error) {
 
 const hardDeleteItem = `-- name: HardDeleteItem :exec
 DELETE FROM items
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NULL
 `
 
 func (q *Queries) HardDeleteItem(ctx context.Context, id int32) error {
@@ -112,23 +114,306 @@ func (q *Queries) HardDeleteItem(ctx context.Context, id int32) error {
 	return err
 }
 
-const listExpiringItemsByUser = `-- name: ListExpiringItemsByUser :many
-SELECT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.is_deleted, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified FROM items i
-JOIN storages s ON i.storage_id = s.id
-WHERE s.owner = $1 AND i.expires_at <= $2 AND i.is_deleted = false
-ORDER BY i.expires_at DESC
+const listActiveItemsByStorageWithTime = `-- name: ListActiveItemsByStorageWithTime :many
+SELECT id, name, category_id, description, quantity, has_image, is_deleted, stored_at, updated_at, expires_at, storage_id, shelf, last_modified FROM items
+WHERE storage_id = $1
+  AND is_deleted = false
+  AND expires_at > $2
+ORDER BY expires_at
 LIMIT $3 OFFSET $4
 `
 
-type ListExpiringItemsByUserParams struct {
+type ListActiveItemsByStorageWithTimeParams struct {
+	StorageID int32     `json:"storage_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Limit     int32     `json:"limit"`
+	Offset    int32     `json:"offset"`
+}
+
+func (q *Queries) ListActiveItemsByStorageWithTime(ctx context.Context, arg ListActiveItemsByStorageWithTimeParams) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, listActiveItemsByStorageWithTime,
+		arg.StorageID,
+		arg.ExpiresAt,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Item{}
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CategoryID,
+			&i.Description,
+			&i.Quantity,
+			&i.HasImage,
+			&i.IsDeleted,
+			&i.StoredAt,
+			&i.UpdatedAt,
+			&i.ExpiresAt,
+			&i.StorageID,
+			&i.Shelf,
+			&i.LastModified,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listActiveItemsByUserWithTime = `-- name: ListActiveItemsByUserWithTime :many
+SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.is_deleted, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified FROM items i
+JOIN storages s ON i.storage_id = s.id
+LEFT JOIN shares sh ON s.id = sh.storage_id
+WHERE (s.owner = $1 OR sh.target_user_id = $1)
+  AND i.is_deleted = false
+  AND i.expires_at > $2
+ORDER BY i.expires_at
+LIMIT $3 OFFSET $4
+`
+
+type ListActiveItemsByUserWithTimeParams struct {
 	Owner     int32     `json:"owner"`
 	ExpiresAt time.Time `json:"expires_at"`
 	Limit     int32     `json:"limit"`
 	Offset    int32     `json:"offset"`
 }
 
-func (q *Queries) ListExpiringItemsByUser(ctx context.Context, arg ListExpiringItemsByUserParams) ([]Item, error) {
-	rows, err := q.db.QueryContext(ctx, listExpiringItemsByUser,
+func (q *Queries) ListActiveItemsByUserWithTime(ctx context.Context, arg ListActiveItemsByUserWithTimeParams) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, listActiveItemsByUserWithTime,
+		arg.Owner,
+		arg.ExpiresAt,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Item{}
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CategoryID,
+			&i.Description,
+			&i.Quantity,
+			&i.HasImage,
+			&i.IsDeleted,
+			&i.StoredAt,
+			&i.UpdatedAt,
+			&i.ExpiresAt,
+			&i.StorageID,
+			&i.Shelf,
+			&i.LastModified,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDeletedItemsByStorageWithTime = `-- name: ListDeletedItemsByStorageWithTime :many
+SELECT id, name, category_id, description, quantity, has_image, is_deleted, stored_at, updated_at, expires_at, storage_id, shelf, last_modified FROM items
+WHERE storage_id = $1
+  AND is_deleted = true
+ORDER BY expires_at
+LIMIT $2 OFFSET $3
+`
+
+type ListDeletedItemsByStorageWithTimeParams struct {
+	StorageID int32 `json:"storage_id"`
+	Limit     int32 `json:"limit"`
+	Offset    int32 `json:"offset"`
+}
+
+func (q *Queries) ListDeletedItemsByStorageWithTime(ctx context.Context, arg ListDeletedItemsByStorageWithTimeParams) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, listDeletedItemsByStorageWithTime, arg.StorageID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Item{}
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CategoryID,
+			&i.Description,
+			&i.Quantity,
+			&i.HasImage,
+			&i.IsDeleted,
+			&i.StoredAt,
+			&i.UpdatedAt,
+			&i.ExpiresAt,
+			&i.StorageID,
+			&i.Shelf,
+			&i.LastModified,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listDeletedItemsByUserWithTime = `-- name: ListDeletedItemsByUserWithTime :many
+SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.is_deleted, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified FROM items i
+JOIN storages s ON i.storage_id = s.id
+LEFT JOIN shares sh ON s.id = sh.storage_id
+WHERE (s.owner = $1 OR sh.target_user_id = $1)
+  AND i.is_deleted = true
+ORDER BY i.expires_at
+LIMIT $2 OFFSET $3
+`
+
+type ListDeletedItemsByUserWithTimeParams struct {
+	Owner  int32 `json:"owner"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListDeletedItemsByUserWithTime(ctx context.Context, arg ListDeletedItemsByUserWithTimeParams) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, listDeletedItemsByUserWithTime, arg.Owner, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Item{}
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CategoryID,
+			&i.Description,
+			&i.Quantity,
+			&i.HasImage,
+			&i.IsDeleted,
+			&i.StoredAt,
+			&i.UpdatedAt,
+			&i.ExpiresAt,
+			&i.StorageID,
+			&i.Shelf,
+			&i.LastModified,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listExpiredItemsByStorageWithTime = `-- name: ListExpiredItemsByStorageWithTime :many
+SELECT id, name, category_id, description, quantity, has_image, is_deleted, stored_at, updated_at, expires_at, storage_id, shelf, last_modified FROM items
+WHERE storage_id = $1
+  AND is_deleted = false
+  AND expires_at > $2
+ORDER BY expires_at
+LIMIT $3 OFFSET $4
+`
+
+type ListExpiredItemsByStorageWithTimeParams struct {
+	StorageID int32     `json:"storage_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Limit     int32     `json:"limit"`
+	Offset    int32     `json:"offset"`
+}
+
+func (q *Queries) ListExpiredItemsByStorageWithTime(ctx context.Context, arg ListExpiredItemsByStorageWithTimeParams) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, listExpiredItemsByStorageWithTime,
+		arg.StorageID,
+		arg.ExpiresAt,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Item{}
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CategoryID,
+			&i.Description,
+			&i.Quantity,
+			&i.HasImage,
+			&i.IsDeleted,
+			&i.StoredAt,
+			&i.UpdatedAt,
+			&i.ExpiresAt,
+			&i.StorageID,
+			&i.Shelf,
+			&i.LastModified,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listExpiredItemsByUserWithTime = `-- name: ListExpiredItemsByUserWithTime :many
+SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.is_deleted, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified FROM items i
+JOIN storages s ON i.storage_id = s.id
+LEFT JOIN shares sh ON s.id = sh.storage_id
+WHERE (s.owner = $1 OR sh.target_user_id = $1)
+  AND i.is_deleted = false
+  AND i.expires_at <= $2
+ORDER BY i.expires_at
+LIMIT $3 OFFSET $4
+`
+
+type ListExpiredItemsByUserWithTimeParams struct {
+	Owner     int32     `json:"owner"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Limit     int32     `json:"limit"`
+	Offset    int32     `json:"offset"`
+}
+
+func (q *Queries) ListExpiredItemsByUserWithTime(ctx context.Context, arg ListExpiredItemsByUserWithTimeParams) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, listExpiredItemsByUserWithTime,
 		arg.Owner,
 		arg.ExpiresAt,
 		arg.Limit,
@@ -268,9 +553,10 @@ func (q *Queries) ListItemsByStorage(ctx context.Context, arg ListItemsByStorage
 }
 
 const listItemsByUser = `-- name: ListItemsByUser :many
-SELECT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.is_deleted, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified FROM items i
+SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.is_deleted, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified FROM items i
 JOIN storages s ON i.storage_id = s.id
-WHERE s.owner = $1 AND i.is_deleted = false
+LEFT JOIN shares sh ON s.id = sh.storage_id
+WHERE (s.owner = $1 OR sh.target_user_id = $1) AND i.is_deleted = false
 ORDER BY i.expires_at
 LIMIT $2 OFFSET $3
 `
@@ -318,6 +604,17 @@ func (q *Queries) ListItemsByUser(ctx context.Context, arg ListItemsByUserParams
 	return items, nil
 }
 
+const restoreItem = `-- name: RestoreItem :exec
+UPDATE items
+SET deleted_at = NULL, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NOT NULL
+`
+
+func (q *Queries) RestoreItem(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, restoreItem, id)
+	return err
+}
+
 const updateItem = `-- name: UpdateItem :one
 UPDATE items
 SET
@@ -333,7 +630,7 @@ SET
     storage_id = $11,
     shelf = $12,
     last_modified = $13
-WHERE id = $1 AND is_deleted = false
+WHERE id = $1 AND is_deleted IS NULL
 RETURNING id, name, category_id, description, quantity, has_image, is_deleted, stored_at, updated_at, expires_at, storage_id, shelf, last_modified
 `
 

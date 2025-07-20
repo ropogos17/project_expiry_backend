@@ -63,9 +63,14 @@ type Querier interface {
 	HardDeleteUser(ctx context.Context, id int32) error
 	HardDeleteUserStatus(ctx context.Context, id int32) error
 	ListActionTypes(ctx context.Context, arg ListActionTypesParams) ([]ActionType, error)
+	ListActiveItemsByStorageWithTime(ctx context.Context, arg ListActiveItemsByStorageWithTimeParams) ([]Item, error)
+	ListActiveItemsByUserWithTime(ctx context.Context, arg ListActiveItemsByUserWithTimeParams) ([]Item, error)
 	ListAnnouncements(ctx context.Context, arg ListAnnouncementsParams) ([]Announcement, error)
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]Category, error)
-	ListExpiringItemsByUser(ctx context.Context, arg ListExpiringItemsByUserParams) ([]Item, error)
+	ListDeletedItemsByStorageWithTime(ctx context.Context, arg ListDeletedItemsByStorageWithTimeParams) ([]Item, error)
+	ListDeletedItemsByUserWithTime(ctx context.Context, arg ListDeletedItemsByUserWithTimeParams) ([]Item, error)
+	ListExpiredItemsByStorageWithTime(ctx context.Context, arg ListExpiredItemsByStorageWithTimeParams) ([]Item, error)
+	ListExpiredItemsByUserWithTime(ctx context.Context, arg ListExpiredItemsByUserWithTimeParams) ([]Item, error)
 	ListItems(ctx context.Context, arg ListItemsParams) ([]Item, error)
 	ListItemsByStorage(ctx context.Context, arg ListItemsByStorageParams) ([]Item, error)
 	ListItemsByUser(ctx context.Context, arg ListItemsByUserParams) ([]Item, error)
@@ -83,6 +88,7 @@ type Querier interface {
 	RestoreActionType(ctx context.Context, id int32) error
 	RestoreAnnouncement(ctx context.Context, id int32) error
 	RestoreCategory(ctx context.Context, id int32) error
+	RestoreItem(ctx context.Context, id int32) error
 	RestoreLanguage(ctx context.Context, id int32) error
 	RestoreRole(ctx context.Context, id int32) error
 	RestoreStorage(ctx context.Context, id int32) error
