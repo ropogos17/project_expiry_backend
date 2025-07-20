@@ -11,6 +11,10 @@ RETURNING *;
 SELECT * FROM shares
 WHERE id = $1 LIMIT 1;
 
+-- name: GetShareByStorageAndOwner :one
+SELECT * FROM shares
+WHERE storage_id = $1 AND target_user_id = $2 LIMIT 1;
+
 -- name: ListShares :many
 SELECT * FROM shares
 ORDER BY id

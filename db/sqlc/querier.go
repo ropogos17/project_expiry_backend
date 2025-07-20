@@ -46,6 +46,7 @@ type Querier interface {
 	GetRefreshToken(ctx context.Context, id uuid.UUID) (RefreshToken, error)
 	GetRole(ctx context.Context, id int32) (Role, error)
 	GetShare(ctx context.Context, id int32) (Share, error)
+	GetShareByStorageAndOwner(ctx context.Context, arg GetShareByStorageAndOwnerParams) (Share, error)
 	GetShoppingListItem(ctx context.Context, id int32) (ShoppingListItem, error)
 	GetStorage(ctx context.Context, id int32) (Storage, error)
 	GetUser(ctx context.Context, id int32) (User, error)

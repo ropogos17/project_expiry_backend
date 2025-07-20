@@ -75,6 +75,30 @@ func (q *Queries) GetShare(ctx context.Context, id int32) (Share, error) {
 	return i, err
 }
 
+const getShareByStorageAndOwner = `-- name: GetShareByStorageAndOwner :one
+SELECT id, source_user_id, storage_id, target_user_id, can_share, shared_at FROM shares
+WHERE storage_id = $1 AND target_user_id = $2 LIMIT 1
+`
+
+type GetShareByStorageAndOwnerParams struct {
+	StorageID    int32 `json:"storage_id"`
+	TargetUserID int32 `json:"target_user_id"`
+}
+
+func (q *Queries) GetShareByStorageAndOwner(ctx context.Context, arg GetShareByStorageAndOwnerParams) (Share, error) {
+	row := q.db.QueryRowContext(ctx, getShareByStorageAndOwner, arg.StorageID, arg.TargetUserID)
+	var i Share
+	err := row.Scan(
+		&i.ID,
+		&i.SourceUserID,
+		&i.StorageID,
+		&i.TargetUserID,
+		&i.CanShare,
+		&i.SharedAt,
+	)
+	return i, err
+}
+
 const listShares = `-- name: ListShares :many
 SELECT id, source_user_id, storage_id, target_user_id, can_share, shared_at FROM shares
 ORDER BY id
