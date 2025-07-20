@@ -37,6 +37,7 @@ type Querier interface {
 	DeleteStorage(ctx context.Context, id int32) error
 	DeleteUser(ctx context.Context, id int32) error
 	DeleteUserStatus(ctx context.Context, id int32) error
+	FinalDeleteItem(ctx context.Context, id int32) error
 	GetActionType(ctx context.Context, id int32) (ActionType, error)
 	GetAnnouncement(ctx context.Context, id int32) (Announcement, error)
 	GetCategory(ctx context.Context, id int32) (Category, error)
@@ -55,7 +56,10 @@ type Querier interface {
 	ListActionTypes(ctx context.Context, arg ListActionTypesParams) ([]ActionType, error)
 	ListAnnouncements(ctx context.Context, arg ListAnnouncementsParams) ([]Announcement, error)
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]Category, error)
+	ListExpiringItemsByUser(ctx context.Context, arg ListExpiringItemsByUserParams) ([]Item, error)
 	ListItems(ctx context.Context, arg ListItemsParams) ([]Item, error)
+	ListItemsByStorage(ctx context.Context, arg ListItemsByStorageParams) ([]Item, error)
+	ListItemsByUser(ctx context.Context, arg ListItemsByUserParams) ([]Item, error)
 	ListLanguages(ctx context.Context, arg ListLanguagesParams) ([]Language, error)
 	ListLogs(ctx context.Context, arg ListLogsParams) ([]Log, error)
 	ListRefreshTokens(ctx context.Context, arg ListRefreshTokensParams) ([]RefreshToken, error)

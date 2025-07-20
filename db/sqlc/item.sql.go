@@ -66,12 +66,23 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (Item, e
 }
 
 const deleteItem = `-- name: DeleteItem :exec
-DELETE FROM items
+UPDATE items
+SET is_deleted = true, updated_at = NOW()
 WHERE id = $1
 `
 
 func (q *Queries) DeleteItem(ctx context.Context, id int32) error {
 	_, err := q.db.ExecContext(ctx, deleteItem, id)
+	return err
+}
+
+const finalDeleteItem = `-- name: FinalDeleteItem :exec
+DELETE FROM items
+WHERE id = $1
+`
+
+func (q *Queries) FinalDeleteItem(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, finalDeleteItem, id)
 	return err
 }
 
@@ -99,6 +110,63 @@ func (q *Queries) GetItem(ctx context.Context, id int32) (Item, error) {
 		&i.LastModified,
 	)
 	return i, err
+}
+
+const listExpiringItemsByUser = `-- name: ListExpiringItemsByUser :many
+SELECT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.is_deleted, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified FROM items i
+JOIN storages s ON i.storage_id = s.id
+WHERE s.owner = $1 AND i.expires_at <= $2 AND i.is_deleted = false
+ORDER BY i.expires_at DESC
+LIMIT $3 OFFSET $4
+`
+
+type ListExpiringItemsByUserParams struct {
+	Owner     int32     `json:"owner"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Limit     int32     `json:"limit"`
+	Offset    int32     `json:"offset"`
+}
+
+func (q *Queries) ListExpiringItemsByUser(ctx context.Context, arg ListExpiringItemsByUserParams) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, listExpiringItemsByUser,
+		arg.Owner,
+		arg.ExpiresAt,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Item{}
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CategoryID,
+			&i.Description,
+			&i.Quantity,
+			&i.HasImage,
+			&i.IsDeleted,
+			&i.StoredAt,
+			&i.UpdatedAt,
+			&i.ExpiresAt,
+			&i.StorageID,
+			&i.Shelf,
+			&i.LastModified,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listItems = `-- name: ListItems :many
@@ -149,6 +217,107 @@ func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]Item, e
 	return items, nil
 }
 
+const listItemsByStorage = `-- name: ListItemsByStorage :many
+SELECT id, name, category_id, description, quantity, has_image, is_deleted, stored_at, updated_at, expires_at, storage_id, shelf, last_modified FROM items
+WHERE storage_id = $1 AND is_deleted = false
+ORDER BY expires_at
+LIMIT $2 OFFSET $3
+`
+
+type ListItemsByStorageParams struct {
+	StorageID int32 `json:"storage_id"`
+	Limit     int32 `json:"limit"`
+	Offset    int32 `json:"offset"`
+}
+
+func (q *Queries) ListItemsByStorage(ctx context.Context, arg ListItemsByStorageParams) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, listItemsByStorage, arg.StorageID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Item{}
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CategoryID,
+			&i.Description,
+			&i.Quantity,
+			&i.HasImage,
+			&i.IsDeleted,
+			&i.StoredAt,
+			&i.UpdatedAt,
+			&i.ExpiresAt,
+			&i.StorageID,
+			&i.Shelf,
+			&i.LastModified,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listItemsByUser = `-- name: ListItemsByUser :many
+SELECT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.is_deleted, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified FROM items i
+JOIN storages s ON i.storage_id = s.id
+WHERE s.owner = $1 AND i.is_deleted = false
+ORDER BY i.expires_at
+LIMIT $2 OFFSET $3
+`
+
+type ListItemsByUserParams struct {
+	Owner  int32 `json:"owner"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListItemsByUser(ctx context.Context, arg ListItemsByUserParams) ([]Item, error) {
+	rows, err := q.db.QueryContext(ctx, listItemsByUser, arg.Owner, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Item{}
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CategoryID,
+			&i.Description,
+			&i.Quantity,
+			&i.HasImage,
+			&i.IsDeleted,
+			&i.StoredAt,
+			&i.UpdatedAt,
+			&i.ExpiresAt,
+			&i.StorageID,
+			&i.Shelf,
+			&i.LastModified,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateItem = `-- name: UpdateItem :one
 UPDATE items
 SET
@@ -164,7 +333,7 @@ SET
     storage_id = $11,
     shelf = $12,
     last_modified = $13
-WHERE id = $1
+WHERE id = $1 AND is_deleted = false
 RETURNING id, name, category_id, description, quantity, has_image, is_deleted, stored_at, updated_at, expires_at, storage_id, shelf, last_modified
 `
 

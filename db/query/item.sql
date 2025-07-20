@@ -12,6 +12,26 @@ RETURNING *;
 SELECT * FROM items
 WHERE id = $1 LIMIT 1;
 
+-- name: ListItemsByStorage :many
+SELECT * FROM items
+WHERE storage_id = $1 AND is_deleted = false
+ORDER BY expires_at
+LIMIT $2 OFFSET $3;
+
+-- name: ListItemsByUser :many
+SELECT i.* FROM items i
+JOIN storages s ON i.storage_id = s.id
+WHERE s.owner = $1 AND i.is_deleted = false
+ORDER BY i.expires_at
+LIMIT $2 OFFSET $3;
+
+-- name: ListExpiringItemsByUser :many
+SELECT i.* FROM items i
+JOIN storages s ON i.storage_id = s.id
+WHERE s.owner = $1 AND i.expires_at <= $2 AND i.is_deleted = false
+ORDER BY i.expires_at DESC
+LIMIT $3 OFFSET $4;
+
 -- name: ListItems :many
 SELECT * FROM items
 ORDER BY id
@@ -32,9 +52,14 @@ SET
     storage_id = $11,
     shelf = $12,
     last_modified = $13
-WHERE id = $1
+WHERE id = $1 AND is_deleted = false
 RETURNING *;
 
 -- name: DeleteItem :exec
+UPDATE items
+SET is_deleted = true, updated_at = NOW()
+WHERE id = $1;
+
+-- name: FinalDeleteItem :exec
 DELETE FROM items
 WHERE id = $1;
