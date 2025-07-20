@@ -19,7 +19,7 @@ INSERT INTO refresh_tokens (
 VALUES (
            $1, $2, $3
        )
-RETURNING id, user_id, issued_at, expires_at
+RETURNING id, user_id, issued_at, expires_at, deleted_at
 `
 
 type CreateRefreshTokenParams struct {
@@ -36,6 +36,7 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 		&i.UserID,
 		&i.IssuedAt,
 		&i.ExpiresAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -51,7 +52,7 @@ func (q *Queries) DeleteRefreshToken(ctx context.Context, id uuid.UUID) error {
 }
 
 const getRefreshToken = `-- name: GetRefreshToken :one
-SELECT id, user_id, issued_at, expires_at FROM refresh_tokens
+SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
 WHERE id = $1
 LIMIT 1
 `
@@ -64,12 +65,13 @@ func (q *Queries) GetRefreshToken(ctx context.Context, id uuid.UUID) (RefreshTok
 		&i.UserID,
 		&i.IssuedAt,
 		&i.ExpiresAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const listRefreshTokens = `-- name: ListRefreshTokens :many
-SELECT id, user_id, issued_at, expires_at FROM refresh_tokens
+SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
 ORDER BY issued_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -93,6 +95,7 @@ func (q *Queries) ListRefreshTokens(ctx context.Context, arg ListRefreshTokensPa
 			&i.UserID,
 			&i.IssuedAt,
 			&i.ExpiresAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -108,7 +111,7 @@ func (q *Queries) ListRefreshTokens(ctx context.Context, arg ListRefreshTokensPa
 }
 
 const listRefreshTokensByUser = `-- name: ListRefreshTokensByUser :many
-SELECT id, user_id, issued_at, expires_at FROM refresh_tokens
+SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
 WHERE user_id = $1
 ORDER BY issued_at DESC
 LIMIT $2 OFFSET $3
@@ -134,6 +137,7 @@ func (q *Queries) ListRefreshTokensByUser(ctx context.Context, arg ListRefreshTo
 			&i.UserID,
 			&i.IssuedAt,
 			&i.ExpiresAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -155,7 +159,7 @@ SET
     issued_at = $3,
     expires_at = $4
 WHERE id = $1
-RETURNING id, user_id, issued_at, expires_at
+RETURNING id, user_id, issued_at, expires_at, deleted_at
 `
 
 type UpdateRefreshTokenParams struct {
@@ -178,6 +182,7 @@ func (q *Queries) UpdateRefreshToken(ctx context.Context, arg UpdateRefreshToken
 		&i.UserID,
 		&i.IssuedAt,
 		&i.ExpiresAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }

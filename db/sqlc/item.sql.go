@@ -76,16 +76,6 @@ func (q *Queries) DeleteItem(ctx context.Context, id int32) error {
 	return err
 }
 
-const finalDeleteItem = `-- name: FinalDeleteItem :exec
-DELETE FROM items
-WHERE id = $1
-`
-
-func (q *Queries) FinalDeleteItem(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, finalDeleteItem, id)
-	return err
-}
-
 const getItem = `-- name: GetItem :one
 SELECT id, name, category_id, description, quantity, has_image, is_deleted, stored_at, updated_at, expires_at, storage_id, shelf, last_modified FROM items
 WHERE id = $1 LIMIT 1
@@ -110,6 +100,16 @@ func (q *Queries) GetItem(ctx context.Context, id int32) (Item, error) {
 		&i.LastModified,
 	)
 	return i, err
+}
+
+const hardDeleteItem = `-- name: HardDeleteItem :exec
+DELETE FROM items
+WHERE id = $1
+`
+
+func (q *Queries) HardDeleteItem(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, hardDeleteItem, id)
+	return err
 }
 
 const listExpiringItemsByUser = `-- name: ListExpiringItemsByUser :many

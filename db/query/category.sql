@@ -9,15 +9,28 @@ WHERE id = $1 LIMIT 1;
 
 -- name: ListCategories :many
 SELECT * FROM categories
-ORDER BY id
+WHERE deleted_at IS NULL
+ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
 -- name: UpdateCategory :one
 UPDATE categories
-SET name = $2
-WHERE id = $1
+SET name = $2, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteCategory :exec
+-- name: DeleteCategory :one
+UPDATE categories
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: RestoreCategory :one
+UPDATE categories
+SET deleted_at = NULL, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NOT NULL
+RETURNING *;
+
+-- name: HardDeleteCategory :exec
 DELETE FROM categories
 WHERE id = $1;

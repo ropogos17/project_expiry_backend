@@ -16,7 +16,7 @@ INSERT INTO languages (
 VALUES (
            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
        )
-RETURNING id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar
+RETURNING id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar, deleted_at, created_at, updated_at
 `
 
 type CreateLanguageParams struct {
@@ -61,22 +61,45 @@ func (q *Queries) CreateLanguage(ctx context.Context, arg CreateLanguageParams) 
 		&i.Ru,
 		&i.Ua,
 		&i.Ar,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const deleteLanguage = `-- name: DeleteLanguage :exec
-DELETE FROM languages
-WHERE id = $1
+const deleteLanguage = `-- name: DeleteLanguage :one
+UPDATE languages
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteLanguage(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteLanguage, id)
-	return err
+func (q *Queries) DeleteLanguage(ctx context.Context, id int32) (Language, error) {
+	row := q.db.QueryRowContext(ctx, deleteLanguage, id)
+	var i Language
+	err := row.Scan(
+		&i.ID,
+		&i.En,
+		&i.Hu,
+		&i.Ro,
+		&i.Es,
+		&i.Zh,
+		&i.Fr,
+		&i.De,
+		&i.Pt,
+		&i.Ru,
+		&i.Ua,
+		&i.Ar,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getLanguage = `-- name: GetLanguage :one
-SELECT id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar FROM languages
+SELECT id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar, deleted_at, created_at, updated_at FROM languages
 WHERE id = $1 LIMIT 1
 `
 
@@ -96,13 +119,27 @@ func (q *Queries) GetLanguage(ctx context.Context, id int32) (Language, error) {
 		&i.Ru,
 		&i.Ua,
 		&i.Ar,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
+const hardDeleteLanguage = `-- name: HardDeleteLanguage :exec
+DELETE FROM languages
+WHERE id = $1
+`
+
+func (q *Queries) HardDeleteLanguage(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, hardDeleteLanguage, id)
+	return err
+}
+
 const listLanguages = `-- name: ListLanguages :many
-SELECT id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar FROM languages
-ORDER BY id
+SELECT id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar, deleted_at, created_at, updated_at FROM languages
+WHERE deleted_at IS NULL
+ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
 
@@ -133,6 +170,9 @@ func (q *Queries) ListLanguages(ctx context.Context, arg ListLanguagesParams) ([
 			&i.Ru,
 			&i.Ua,
 			&i.Ar,
+			&i.DeletedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -145,6 +185,36 @@ func (q *Queries) ListLanguages(ctx context.Context, arg ListLanguagesParams) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const restoreLanguage = `-- name: RestoreLanguage :one
+UPDATE languages
+SET deleted_at = NULL, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NOT NULL
+RETURNING id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar, deleted_at, created_at, updated_at
+`
+
+func (q *Queries) RestoreLanguage(ctx context.Context, id int32) (Language, error) {
+	row := q.db.QueryRowContext(ctx, restoreLanguage, id)
+	var i Language
+	err := row.Scan(
+		&i.ID,
+		&i.En,
+		&i.Hu,
+		&i.Ro,
+		&i.Es,
+		&i.Zh,
+		&i.Fr,
+		&i.De,
+		&i.Pt,
+		&i.Ru,
+		&i.Ua,
+		&i.Ar,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateLanguage = `-- name: UpdateLanguage :one
@@ -160,9 +230,10 @@ SET
     pt = $9,
     ru = $10,
     ua = $11,
-    ar = $12
-WHERE id = $1
-RETURNING id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar
+    ar = $12,
+    updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar, deleted_at, created_at, updated_at
 `
 
 type UpdateLanguageParams struct {
@@ -209,6 +280,9 @@ func (q *Queries) UpdateLanguage(ctx context.Context, arg UpdateLanguageParams) 
 		&i.Ru,
 		&i.Ua,
 		&i.Ar,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

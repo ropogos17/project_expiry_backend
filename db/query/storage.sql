@@ -18,13 +18,9 @@ LIMIT $1 OFFSET $2;
 
 -- name: ListStoragesByOwner :many
 SELECT * FROM storages
-WHERE owner = $3
-ORDER BY id
+WHERE owner = $3 AND deleted_at IS NULL
+ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
-
--- name: GetShareByStorageAndOwner :one
-SELECT * FROM shares
-WHERE storage_id = $1 AND target_user_id = $2 LIMIT 1;
 
 -- name: UpdateStorage :one
 UPDATE storages
@@ -34,15 +30,23 @@ SET
     location = $4,
     shelves = $5,
     has_image = $6,
-    owner = $7
-WHERE id = $1
+    owner = $7,
+    updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteStorage :exec
+-- name: DeleteStorage :one
 UPDATE storages
-SET is_deleted = true, updated_at = NOW()
-WHERE id = $1;
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
 
--- name: DeleteStorage :exec
+-- name: RestoreStorage :one
+UPDATE storages
+SET deleted_at = NULL, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NOT NULL
+RETURNING *;
+
+-- name: HardDeleteStorage :exec
 DELETE FROM storages
 WHERE id = $1;

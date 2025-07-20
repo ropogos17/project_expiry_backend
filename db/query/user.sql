@@ -53,9 +53,21 @@ UPDATE users SET
                  status_id = $18,
                  deleted_at = $19,
                  updated_at = $20
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NOT NULL
 RETURNING *;
 
--- name: DeleteUser :exec
+-- name: DeleteUser :one
+UPDATE users
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: RestoreUser :one
+UPDATE users
+SET deleted_at = NULL, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NOT NULL
+RETURNING *;
+
+-- name: HardDeleteUser :exec
 DELETE FROM users
 WHERE id = $1;

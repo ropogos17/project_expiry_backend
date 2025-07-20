@@ -12,41 +12,74 @@ import (
 const createUserStatus = `-- name: CreateUserStatus :one
 INSERT INTO user_statuses (name)
 VALUES ($1)
-RETURNING id, name
+RETURNING id, name, deleted_at, created_at, updated_at
 `
 
 func (q *Queries) CreateUserStatus(ctx context.Context, name string) (UserStatus, error) {
 	row := q.db.QueryRowContext(ctx, createUserStatus, name)
 	var i UserStatus
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
-const deleteUserStatus = `-- name: DeleteUserStatus :exec
-DELETE FROM user_statuses
-WHERE id = $1
+const deleteUserStatus = `-- name: DeleteUserStatus :one
+UPDATE user_statuses
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, name, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteUserStatus(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteUserStatus, id)
-	return err
+func (q *Queries) DeleteUserStatus(ctx context.Context, id int32) (UserStatus, error) {
+	row := q.db.QueryRowContext(ctx, deleteUserStatus, id)
+	var i UserStatus
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getUserStatus = `-- name: GetUserStatus :one
-SELECT id, name FROM user_statuses
+SELECT id, name, deleted_at, created_at, updated_at FROM user_statuses
 WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserStatus(ctx context.Context, id int32) (UserStatus, error) {
 	row := q.db.QueryRowContext(ctx, getUserStatus, id)
 	var i UserStatus
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
+const hardDeleteUserStatus = `-- name: HardDeleteUserStatus :exec
+DELETE FROM user_statuses
+WHERE id = $1
+`
+
+func (q *Queries) HardDeleteUserStatus(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, hardDeleteUserStatus, id)
+	return err
+}
+
 const listUserStatuses = `-- name: ListUserStatuses :many
-SELECT id, name FROM user_statuses
-ORDER BY id
+SELECT id, name, deleted_at, created_at, updated_at FROM user_statuses
+WHERE deleted_at IS NULL
+ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
 
@@ -64,7 +97,13 @@ func (q *Queries) ListUserStatuses(ctx context.Context, arg ListUserStatusesPara
 	items := []UserStatus{}
 	for rows.Next() {
 		var i UserStatus
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.DeletedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -78,11 +117,31 @@ func (q *Queries) ListUserStatuses(ctx context.Context, arg ListUserStatusesPara
 	return items, nil
 }
 
+const restoreUserStatus = `-- name: RestoreUserStatus :one
+UPDATE user_statuses
+SET deleted_at = NULL, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NOT NULL
+RETURNING id, name, deleted_at, created_at, updated_at
+`
+
+func (q *Queries) RestoreUserStatus(ctx context.Context, id int32) (UserStatus, error) {
+	row := q.db.QueryRowContext(ctx, restoreUserStatus, id)
+	var i UserStatus
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateUserStatus = `-- name: UpdateUserStatus :one
 UPDATE user_statuses
-SET name = $2
-WHERE id = $1
-RETURNING id, name
+SET name = $2, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, name, deleted_at, created_at, updated_at
 `
 
 type UpdateUserStatusParams struct {
@@ -93,6 +152,12 @@ type UpdateUserStatusParams struct {
 func (q *Queries) UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) (UserStatus, error) {
 	row := q.db.QueryRowContext(ctx, updateUserStatus, arg.ID, arg.Name)
 	var i UserStatus
-	err := row.Scan(&i.ID, &i.Name)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
 	return i, err
 }

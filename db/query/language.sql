@@ -13,7 +13,8 @@ WHERE id = $1 LIMIT 1;
 
 -- name: ListLanguages :many
 SELECT * FROM languages
-ORDER BY id
+WHERE deleted_at IS NULL
+ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
 -- name: UpdateLanguage :one
@@ -29,10 +30,23 @@ SET
     pt = $9,
     ru = $10,
     ua = $11,
-    ar = $12
-WHERE id = $1
+    ar = $12,
+    updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteLanguage :exec
+-- name: DeleteLanguage :one
+UPDATE languages
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: RestoreLanguage :one
+UPDATE languages
+SET deleted_at = NULL, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NOT NULL
+RETURNING *;
+
+-- name: HardDeleteLanguage :exec
 DELETE FROM languages
 WHERE id = $1;

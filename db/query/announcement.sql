@@ -13,7 +13,8 @@ WHERE id = $1 LIMIT 1;
 
 -- name: ListAnnouncements :many
 SELECT * FROM announcements
-ORDER BY id
+WHERE deleted_at IS NULL
+ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
 -- name: UpdateAnnouncement :one
@@ -22,10 +23,23 @@ SET
     name = $2,
     description = $3,
     external_link = $4,
-    has_read = $5
-WHERE id = $1
+    has_read = $5,
+    updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteAnnouncement :exec
+-- name: DeleteAnnouncement :one
+UPDATE announcements
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
+
+-- name: RestoreAnnouncement :one
+UPDATE announcements
+SET deleted_at = NULL, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NOT NULL
+RETURNING *;
+
+-- name: HardDeleteAnnouncement :exec
 DELETE FROM announcements
 WHERE id = $1;

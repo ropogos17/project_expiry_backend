@@ -12,8 +12,11 @@ import (
 )
 
 type ActionType struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
+	ID        int32        `json:"id"`
+	Name      string       `json:"name"`
+	DeletedAt sql.NullTime `json:"deleted_at"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 type Announcement struct {
@@ -22,11 +25,17 @@ type Announcement struct {
 	Description  sql.NullString `json:"description"`
 	ExternalLink sql.NullString `json:"external_link"`
 	HasRead      bool           `json:"has_read"`
+	DeletedAt    sql.NullTime   `json:"deleted_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
 }
 
 type Category struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
+	ID        int32        `json:"id"`
+	Name      string       `json:"name"`
+	DeletedAt sql.NullTime `json:"deleted_at"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 type Item struct {
@@ -46,18 +55,21 @@ type Item struct {
 }
 
 type Language struct {
-	ID int32  `json:"id"`
-	En string `json:"en"`
-	Hu string `json:"hu"`
-	Ro string `json:"ro"`
-	Es string `json:"es"`
-	Zh string `json:"zh"`
-	Fr string `json:"fr"`
-	De string `json:"de"`
-	Pt string `json:"pt"`
-	Ru string `json:"ru"`
-	Ua string `json:"ua"`
-	Ar string `json:"ar"`
+	ID        int32        `json:"id"`
+	En        string       `json:"en"`
+	Hu        string       `json:"hu"`
+	Ro        string       `json:"ro"`
+	Es        string       `json:"es"`
+	Zh        string       `json:"zh"`
+	Fr        string       `json:"fr"`
+	De        string       `json:"de"`
+	Pt        string       `json:"pt"`
+	Ru        string       `json:"ru"`
+	Ua        string       `json:"ua"`
+	Ar        string       `json:"ar"`
+	DeletedAt sql.NullTime `json:"deleted_at"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 type Log struct {
@@ -70,15 +82,19 @@ type Log struct {
 }
 
 type RefreshToken struct {
-	ID        uuid.UUID `json:"id"`
-	UserID    int32     `json:"user_id"`
-	IssuedAt  time.Time `json:"issued_at"`
-	ExpiresAt time.Time `json:"expires_at"`
+	ID        uuid.UUID    `json:"id"`
+	UserID    int32        `json:"user_id"`
+	IssuedAt  time.Time    `json:"issued_at"`
+	ExpiresAt time.Time    `json:"expires_at"`
+	DeletedAt sql.NullTime `json:"deleted_at"`
 }
 
 type Role struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
+	ID        int32        `json:"id"`
+	Name      string       `json:"name"`
+	DeletedAt sql.NullTime `json:"deleted_at"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 type Share struct {
@@ -110,6 +126,9 @@ type Storage struct {
 	Shelves     sql.NullInt32  `json:"shelves"`
 	HasImage    bool           `json:"has_image"`
 	Owner       int32          `json:"owner"`
+	DeletedAt   sql.NullTime   `json:"deleted_at"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 type User struct {
@@ -137,6 +156,9 @@ type User struct {
 }
 
 type UserStatus struct {
-	ID   int32  `json:"id"`
-	Name string `json:"name"`
+	ID        int32        `json:"id"`
+	Name      string       `json:"name"`
+	DeletedAt sql.NullTime `json:"deleted_at"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }

@@ -60,6 +60,6 @@ UPDATE items
 SET is_deleted = true, updated_at = NOW()
 WHERE id = $1;
 
--- name: FinalDeleteItem :exec
+-- name: HardDeleteItem :exec
 DELETE FROM items
 WHERE id = $1;

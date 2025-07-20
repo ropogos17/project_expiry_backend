@@ -17,7 +17,7 @@ INSERT INTO announcements (
 VALUES (
            $1, $2, $3, $4
        )
-RETURNING id, name, description, external_link, has_read
+RETURNING id, name, description, external_link, has_read, deleted_at, created_at, updated_at
 `
 
 type CreateAnnouncementParams struct {
@@ -41,22 +41,38 @@ func (q *Queries) CreateAnnouncement(ctx context.Context, arg CreateAnnouncement
 		&i.Description,
 		&i.ExternalLink,
 		&i.HasRead,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const deleteAnnouncement = `-- name: DeleteAnnouncement :exec
-DELETE FROM announcements
-WHERE id = $1
+const deleteAnnouncement = `-- name: DeleteAnnouncement :one
+UPDATE announcements
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, name, description, external_link, has_read, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteAnnouncement(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteAnnouncement, id)
-	return err
+func (q *Queries) DeleteAnnouncement(ctx context.Context, id int32) (Announcement, error) {
+	row := q.db.QueryRowContext(ctx, deleteAnnouncement, id)
+	var i Announcement
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.ExternalLink,
+		&i.HasRead,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getAnnouncement = `-- name: GetAnnouncement :one
-SELECT id, name, description, external_link, has_read FROM announcements
+SELECT id, name, description, external_link, has_read, deleted_at, created_at, updated_at FROM announcements
 WHERE id = $1 LIMIT 1
 `
 
@@ -69,13 +85,27 @@ func (q *Queries) GetAnnouncement(ctx context.Context, id int32) (Announcement, 
 		&i.Description,
 		&i.ExternalLink,
 		&i.HasRead,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
+const hardDeleteAnnouncement = `-- name: HardDeleteAnnouncement :exec
+DELETE FROM announcements
+WHERE id = $1
+`
+
+func (q *Queries) HardDeleteAnnouncement(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, hardDeleteAnnouncement, id)
+	return err
+}
+
 const listAnnouncements = `-- name: ListAnnouncements :many
-SELECT id, name, description, external_link, has_read FROM announcements
-ORDER BY id
+SELECT id, name, description, external_link, has_read, deleted_at, created_at, updated_at FROM announcements
+WHERE deleted_at IS NULL
+ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
 
@@ -99,6 +129,9 @@ func (q *Queries) ListAnnouncements(ctx context.Context, arg ListAnnouncementsPa
 			&i.Description,
 			&i.ExternalLink,
 			&i.HasRead,
+			&i.DeletedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -113,15 +146,39 @@ func (q *Queries) ListAnnouncements(ctx context.Context, arg ListAnnouncementsPa
 	return items, nil
 }
 
+const restoreAnnouncement = `-- name: RestoreAnnouncement :one
+UPDATE announcements
+SET deleted_at = NULL, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NOT NULL
+RETURNING id, name, description, external_link, has_read, deleted_at, created_at, updated_at
+`
+
+func (q *Queries) RestoreAnnouncement(ctx context.Context, id int32) (Announcement, error) {
+	row := q.db.QueryRowContext(ctx, restoreAnnouncement, id)
+	var i Announcement
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.ExternalLink,
+		&i.HasRead,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateAnnouncement = `-- name: UpdateAnnouncement :one
 UPDATE announcements
 SET
     name = $2,
     description = $3,
     external_link = $4,
-    has_read = $5
-WHERE id = $1
-RETURNING id, name, description, external_link, has_read
+    has_read = $5,
+    updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, name, description, external_link, has_read, deleted_at, created_at, updated_at
 `
 
 type UpdateAnnouncementParams struct {
@@ -147,6 +204,9 @@ func (q *Queries) UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncement
 		&i.Description,
 		&i.ExternalLink,
 		&i.HasRead,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

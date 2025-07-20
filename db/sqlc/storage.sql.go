@@ -17,7 +17,7 @@ INSERT INTO storages (
 VALUES (
            $1, $2, $3, $4, $5, $6
        )
-RETURNING id, name, description, location, shelves, has_image, owner
+RETURNING id, name, description, location, shelves, has_image, owner, deleted_at, created_at, updated_at
 `
 
 type CreateStorageParams struct {
@@ -47,22 +47,40 @@ func (q *Queries) CreateStorage(ctx context.Context, arg CreateStorageParams) (S
 		&i.Shelves,
 		&i.HasImage,
 		&i.Owner,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const deleteStorage = `-- name: DeleteStorage :exec
-DELETE FROM storages
-WHERE id = $1
+const deleteStorage = `-- name: DeleteStorage :one
+UPDATE storages
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, name, description, location, shelves, has_image, owner, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteStorage(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteStorage, id)
-	return err
+func (q *Queries) DeleteStorage(ctx context.Context, id int32) (Storage, error) {
+	row := q.db.QueryRowContext(ctx, deleteStorage, id)
+	var i Storage
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Location,
+		&i.Shelves,
+		&i.HasImage,
+		&i.Owner,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getStorage = `-- name: GetStorage :one
-SELECT id, name, description, location, shelves, has_image, owner FROM storages
+SELECT id, name, description, location, shelves, has_image, owner, deleted_at, created_at, updated_at FROM storages
 WHERE id = $1 LIMIT 1
 `
 
@@ -77,12 +95,25 @@ func (q *Queries) GetStorage(ctx context.Context, id int32) (Storage, error) {
 		&i.Shelves,
 		&i.HasImage,
 		&i.Owner,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
+const hardDeleteStorage = `-- name: HardDeleteStorage :exec
+DELETE FROM storages
+WHERE id = $1
+`
+
+func (q *Queries) HardDeleteStorage(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, hardDeleteStorage, id)
+	return err
+}
+
 const listStorages = `-- name: ListStorages :many
-SELECT id, name, description, location, shelves, has_image, owner FROM storages
+SELECT id, name, description, location, shelves, has_image, owner, deleted_at, created_at, updated_at FROM storages
 ORDER BY id
 LIMIT $1 OFFSET $2
 `
@@ -109,6 +140,9 @@ func (q *Queries) ListStorages(ctx context.Context, arg ListStoragesParams) ([]S
 			&i.Shelves,
 			&i.HasImage,
 			&i.Owner,
+			&i.DeletedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -124,9 +158,9 @@ func (q *Queries) ListStorages(ctx context.Context, arg ListStoragesParams) ([]S
 }
 
 const listStoragesByOwner = `-- name: ListStoragesByOwner :many
-SELECT id, name, description, location, shelves, has_image, owner FROM storages
-WHERE owner = $3
-ORDER BY id
+SELECT id, name, description, location, shelves, has_image, owner, deleted_at, created_at, updated_at FROM storages
+WHERE owner = $3 AND deleted_at IS NULL
+ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
 
@@ -153,6 +187,9 @@ func (q *Queries) ListStoragesByOwner(ctx context.Context, arg ListStoragesByOwn
 			&i.Shelves,
 			&i.HasImage,
 			&i.Owner,
+			&i.DeletedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -167,6 +204,31 @@ func (q *Queries) ListStoragesByOwner(ctx context.Context, arg ListStoragesByOwn
 	return items, nil
 }
 
+const restoreStorage = `-- name: RestoreStorage :one
+UPDATE storages
+SET deleted_at = NULL, updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NOT NULL
+RETURNING id, name, description, location, shelves, has_image, owner, deleted_at, created_at, updated_at
+`
+
+func (q *Queries) RestoreStorage(ctx context.Context, id int32) (Storage, error) {
+	row := q.db.QueryRowContext(ctx, restoreStorage, id)
+	var i Storage
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Location,
+		&i.Shelves,
+		&i.HasImage,
+		&i.Owner,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateStorage = `-- name: UpdateStorage :one
 UPDATE storages
 SET
@@ -175,9 +237,10 @@ SET
     location = $4,
     shelves = $5,
     has_image = $6,
-    owner = $7
-WHERE id = $1
-RETURNING id, name, description, location, shelves, has_image, owner
+    owner = $7,
+    updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, name, description, location, shelves, has_image, owner, deleted_at, created_at, updated_at
 `
 
 type UpdateStorageParams struct {
@@ -209,6 +272,9 @@ func (q *Queries) UpdateStorage(ctx context.Context, arg UpdateStorageParams) (S
 		&i.Shelves,
 		&i.HasImage,
 		&i.Owner,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
