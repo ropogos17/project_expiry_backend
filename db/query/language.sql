@@ -35,17 +35,15 @@ SET
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteLanguage :one
+-- name: DeleteLanguage :exec
 UPDATE languages
 SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: RestoreLanguage :one
+-- name: RestoreLanguage :exec
 UPDATE languages
 SET deleted_at = NULL, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NOT NULL;
 
 -- name: HardDeleteLanguage :exec
 DELETE FROM languages

@@ -19,17 +19,15 @@ SET name = $2, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteRole :one
+-- name: DeleteRole :exec
 UPDATE roles
 SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: RestoreRole :one
+-- name: RestoreRole :exec
 UPDATE roles
 SET deleted_at = NULL, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NOT NULL;
 
 -- name: HardDeleteRole :exec
 DELETE FROM roles

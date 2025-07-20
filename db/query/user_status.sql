@@ -19,17 +19,15 @@ SET name = $2, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteUserStatus :one
+-- name: DeleteUserStatus :exec
 UPDATE user_statuses
 SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: RestoreUserStatus :one
+-- name: RestoreUserStatus :exec
 UPDATE user_statuses
 SET deleted_at = NULL, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NOT NULL;
 
 -- name: HardDeleteUserStatus :exec
 DELETE FROM user_statuses

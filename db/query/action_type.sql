@@ -19,17 +19,15 @@ SET name = $2, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteActionType :one
+-- name: DeleteActionType :exec
 UPDATE action_types
 SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: RestoreActionType :one
+-- name: RestoreActionType :exec
 UPDATE action_types
 SET deleted_at = NULL, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NOT NULL;
 
 -- name: HardDeleteActionType :exec
 DELETE FROM action_types

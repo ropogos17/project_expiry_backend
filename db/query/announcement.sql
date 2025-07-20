@@ -28,17 +28,15 @@ SET
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteAnnouncement :one
+-- name: DeleteAnnouncement :exec
 UPDATE announcements
 SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: RestoreAnnouncement :one
+-- name: RestoreAnnouncement :exec
 UPDATE announcements
 SET deleted_at = NULL, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NOT NULL;
 
 -- name: HardDeleteAnnouncement :exec
 DELETE FROM announcements

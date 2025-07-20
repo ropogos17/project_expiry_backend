@@ -56,17 +56,15 @@ UPDATE users SET
 WHERE id = $1 AND deleted_at IS NOT NULL
 RETURNING *;
 
--- name: DeleteUser :one
+-- name: DeleteUser :exec
 UPDATE users
 SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: RestoreUser :one
+-- name: RestoreUser :exec
 UPDATE users
 SET deleted_at = NULL, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NOT NULL;
 
 -- name: HardDeleteUser :exec
 DELETE FROM users

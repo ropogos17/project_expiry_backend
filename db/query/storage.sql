@@ -35,17 +35,15 @@ SET
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteStorage :one
+-- name: DeleteStorage :exec
 UPDATE storages
 SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NULL;
 
--- name: RestoreStorage :one
+-- name: RestoreStorage :exec
 UPDATE storages
 SET deleted_at = NULL, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING *;
+WHERE id = $1 AND deleted_at IS NOT NULL;
 
 -- name: HardDeleteStorage :exec
 DELETE FROM storages
