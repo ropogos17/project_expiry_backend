@@ -361,7 +361,7 @@ func (server *Server) listActiveItems(c *gin.Context) {
 
 func (server *Server) listExpiredItems(c *gin.Context) {
 	var req listActiveItemsRequest // Reusing the same request struct
-	if err := c.ShouldBindQuery(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
@@ -406,6 +406,57 @@ func (server *Server) listExpiredItems(c *gin.Context) {
 		}
 
 		items, err := server.store.ListExpiredItemsByUserWithTime(c, arg)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		c.JSON(http.StatusOK, items)
+	}
+}
+
+func (server *Server) listDeletedItems(c *gin.Context) {
+	var req listActiveItemsRequest // Reusing the same request struct
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// Get authenticated user
+	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+	user, err := server.store.GetUserByUsername(c, authPayload.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	if req.StorageID != nil {
+		// Verify user owns the storage or has access to it
+		if !server.hasStorageAccess(c, *req.StorageID, user.ID) {
+			return // Error response already sent
+		}
+
+		// List expired items for specific storage
+		arg := db.ListDeletedItemsByStorageWithTimeParams{
+			StorageID: *req.StorageID,
+			Limit:     req.PageSize,
+			Offset:    (req.PageID - 1) * req.PageSize,
+		}
+
+		items, err := server.store.ListDeletedItemsByStorageWithTime(c, arg)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+		c.JSON(http.StatusOK, items)
+	} else {
+		// List all expired items for user's storages
+		arg := db.ListDeletedItemsByUserWithTimeParams{
+			Owner:  user.ID,
+			Limit:  req.PageSize,
+			Offset: (req.PageID - 1) * req.PageSize,
+		}
+
+		items, err := server.store.ListDeletedItemsByUserWithTime(c, arg)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, errorResponse(err))
 			return
