@@ -48,27 +48,15 @@ func (q *Queries) CreateAnnouncement(ctx context.Context, arg CreateAnnouncement
 	return i, err
 }
 
-const deleteAnnouncement = `-- name: DeleteAnnouncement :one
+const deleteAnnouncement = `-- name: DeleteAnnouncement :exec
 UPDATE announcements
 SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, description, external_link, has_read, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteAnnouncement(ctx context.Context, id int32) (Announcement, error) {
-	row := q.db.QueryRowContext(ctx, deleteAnnouncement, id)
-	var i Announcement
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.ExternalLink,
-		&i.HasRead,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) DeleteAnnouncement(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteAnnouncement, id)
+	return err
 }
 
 const getAnnouncement = `-- name: GetAnnouncement :one
@@ -146,27 +134,15 @@ func (q *Queries) ListAnnouncements(ctx context.Context, arg ListAnnouncementsPa
 	return items, nil
 }
 
-const restoreAnnouncement = `-- name: RestoreAnnouncement :one
+const restoreAnnouncement = `-- name: RestoreAnnouncement :exec
 UPDATE announcements
 SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING id, name, description, external_link, has_read, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) RestoreAnnouncement(ctx context.Context, id int32) (Announcement, error) {
-	row := q.db.QueryRowContext(ctx, restoreAnnouncement, id)
-	var i Announcement
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.ExternalLink,
-		&i.HasRead,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) RestoreAnnouncement(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, restoreAnnouncement, id)
+	return err
 }
 
 const updateAnnouncement = `-- name: UpdateAnnouncement :one

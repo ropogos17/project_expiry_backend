@@ -28,24 +28,15 @@ func (q *Queries) CreateRole(ctx context.Context, name string) (Role, error) {
 	return i, err
 }
 
-const deleteRole = `-- name: DeleteRole :one
+const deleteRole = `-- name: DeleteRole :exec
 UPDATE roles
 SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteRole(ctx context.Context, id int32) (Role, error) {
-	row := q.db.QueryRowContext(ctx, deleteRole, id)
-	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) DeleteRole(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteRole, id)
+	return err
 }
 
 const getRole = `-- name: GetRole :one
@@ -117,24 +108,15 @@ func (q *Queries) ListRoles(ctx context.Context, arg ListRolesParams) ([]Role, e
 	return items, nil
 }
 
-const restoreRole = `-- name: RestoreRole :one
+const restoreRole = `-- name: RestoreRole :exec
 UPDATE roles
 SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING id, name, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) RestoreRole(ctx context.Context, id int32) (Role, error) {
-	row := q.db.QueryRowContext(ctx, restoreRole, id)
-	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) RestoreRole(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, restoreRole, id)
+	return err
 }
 
 const updateRole = `-- name: UpdateRole :one

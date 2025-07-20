@@ -68,34 +68,15 @@ func (q *Queries) CreateLanguage(ctx context.Context, arg CreateLanguageParams) 
 	return i, err
 }
 
-const deleteLanguage = `-- name: DeleteLanguage :one
+const deleteLanguage = `-- name: DeleteLanguage :exec
 UPDATE languages
 SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteLanguage(ctx context.Context, id int32) (Language, error) {
-	row := q.db.QueryRowContext(ctx, deleteLanguage, id)
-	var i Language
-	err := row.Scan(
-		&i.ID,
-		&i.En,
-		&i.Hu,
-		&i.Ro,
-		&i.Es,
-		&i.Zh,
-		&i.Fr,
-		&i.De,
-		&i.Pt,
-		&i.Ru,
-		&i.Ua,
-		&i.Ar,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) DeleteLanguage(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteLanguage, id)
+	return err
 }
 
 const getLanguage = `-- name: GetLanguage :one
@@ -187,34 +168,15 @@ func (q *Queries) ListLanguages(ctx context.Context, arg ListLanguagesParams) ([
 	return items, nil
 }
 
-const restoreLanguage = `-- name: RestoreLanguage :one
+const restoreLanguage = `-- name: RestoreLanguage :exec
 UPDATE languages
 SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING id, en, hu, ro, es, zh, fr, de, pt, ru, ua, ar, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) RestoreLanguage(ctx context.Context, id int32) (Language, error) {
-	row := q.db.QueryRowContext(ctx, restoreLanguage, id)
-	var i Language
-	err := row.Scan(
-		&i.ID,
-		&i.En,
-		&i.Hu,
-		&i.Ro,
-		&i.Es,
-		&i.Zh,
-		&i.Fr,
-		&i.De,
-		&i.Pt,
-		&i.Ru,
-		&i.Ua,
-		&i.Ar,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) RestoreLanguage(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, restoreLanguage, id)
+	return err
 }
 
 const updateLanguage = `-- name: UpdateLanguage :one

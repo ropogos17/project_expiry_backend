@@ -80,40 +80,15 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const deleteUser = `-- name: DeleteUser :one
+const deleteUser = `-- name: DeleteUser :exec
 UPDATE users
 SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id int32) (User, error) {
-	row := q.db.QueryRowContext(ctx, deleteUser, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Username,
-		&i.Email,
-		&i.Phone,
-		&i.HasAvatar,
-		&i.Password,
-		&i.EmailVerified,
-		&i.PhoneVerified,
-		&i.TwoFactorEnabled,
-		&i.TwoFactorSecret,
-		&i.LastLogin,
-		&i.LoginAttempts,
-		&i.LockedUntil,
-		&i.PasswordChangedAt,
-		&i.RoleID,
-		&i.IsSuperuser,
-		&i.StatusID,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, id)
+	return err
 }
 
 const getUser = `-- name: GetUser :one
@@ -284,40 +259,15 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 	return items, nil
 }
 
-const restoreUser = `-- name: RestoreUser :one
+const restoreUser = `-- name: RestoreUser :exec
 UPDATE users
 SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) RestoreUser(ctx context.Context, id int32) (User, error) {
-	row := q.db.QueryRowContext(ctx, restoreUser, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Username,
-		&i.Email,
-		&i.Phone,
-		&i.HasAvatar,
-		&i.Password,
-		&i.EmailVerified,
-		&i.PhoneVerified,
-		&i.TwoFactorEnabled,
-		&i.TwoFactorSecret,
-		&i.LastLogin,
-		&i.LoginAttempts,
-		&i.LockedUntil,
-		&i.PasswordChangedAt,
-		&i.RoleID,
-		&i.IsSuperuser,
-		&i.StatusID,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) RestoreUser(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, restoreUser, id)
+	return err
 }
 
 const updateUser = `-- name: UpdateUser :one

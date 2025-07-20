@@ -28,24 +28,15 @@ func (q *Queries) CreateActionType(ctx context.Context, name string) (ActionType
 	return i, err
 }
 
-const deleteActionType = `-- name: DeleteActionType :one
+const deleteActionType = `-- name: DeleteActionType :exec
 UPDATE action_types
 SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteActionType(ctx context.Context, id int32) (ActionType, error) {
-	row := q.db.QueryRowContext(ctx, deleteActionType, id)
-	var i ActionType
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) DeleteActionType(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteActionType, id)
+	return err
 }
 
 const getActionType = `-- name: GetActionType :one
@@ -117,24 +108,15 @@ func (q *Queries) ListActionTypes(ctx context.Context, arg ListActionTypesParams
 	return items, nil
 }
 
-const restoreActionType = `-- name: RestoreActionType :one
+const restoreActionType = `-- name: RestoreActionType :exec
 UPDATE action_types
 SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING id, name, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) RestoreActionType(ctx context.Context, id int32) (ActionType, error) {
-	row := q.db.QueryRowContext(ctx, restoreActionType, id)
-	var i ActionType
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) RestoreActionType(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, restoreActionType, id)
+	return err
 }
 
 const updateActionType = `-- name: UpdateActionType :one

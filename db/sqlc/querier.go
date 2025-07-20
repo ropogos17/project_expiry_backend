@@ -24,19 +24,19 @@ type Querier interface {
 	CreateStorage(ctx context.Context, arg CreateStorageParams) (Storage, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserStatus(ctx context.Context, name string) (UserStatus, error)
-	DeleteActionType(ctx context.Context, id int32) (ActionType, error)
-	DeleteAnnouncement(ctx context.Context, id int32) (Announcement, error)
-	DeleteCategory(ctx context.Context, id int32) (Category, error)
+	DeleteActionType(ctx context.Context, id int32) error
+	DeleteAnnouncement(ctx context.Context, id int32) error
+	DeleteCategory(ctx context.Context, id int32) error
 	DeleteItem(ctx context.Context, id int32) error
-	DeleteLanguage(ctx context.Context, id int32) (Language, error)
+	DeleteLanguage(ctx context.Context, id int32) error
 	DeleteLog(ctx context.Context, id int32) error
 	DeleteRefreshToken(ctx context.Context, id uuid.UUID) error
-	DeleteRole(ctx context.Context, id int32) (Role, error)
+	DeleteRole(ctx context.Context, id int32) error
 	DeleteShare(ctx context.Context, id int32) error
 	DeleteShoppingListItem(ctx context.Context, id int32) error
-	DeleteStorage(ctx context.Context, id int32) (Storage, error)
-	DeleteUser(ctx context.Context, id int32) (User, error)
-	DeleteUserStatus(ctx context.Context, id int32) (UserStatus, error)
+	DeleteStorage(ctx context.Context, id int32) error
+	DeleteUser(ctx context.Context, id int32) error
+	DeleteUserStatus(ctx context.Context, id int32) error
 	GetActionType(ctx context.Context, id int32) (ActionType, error)
 	GetAnnouncement(ctx context.Context, id int32) (Announcement, error)
 	GetCategory(ctx context.Context, id int32) (Category, error)
@@ -80,14 +80,14 @@ type Querier interface {
 	ListStoragesByOwner(ctx context.Context, arg ListStoragesByOwnerParams) ([]Storage, error)
 	ListUserStatuses(ctx context.Context, arg ListUserStatusesParams) ([]UserStatus, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
-	RestoreActionType(ctx context.Context, id int32) (ActionType, error)
-	RestoreAnnouncement(ctx context.Context, id int32) (Announcement, error)
-	RestoreCategory(ctx context.Context, id int32) (Category, error)
-	RestoreLanguage(ctx context.Context, id int32) (Language, error)
-	RestoreRole(ctx context.Context, id int32) (Role, error)
-	RestoreStorage(ctx context.Context, id int32) (Storage, error)
-	RestoreUser(ctx context.Context, id int32) (User, error)
-	RestoreUserStatus(ctx context.Context, id int32) (UserStatus, error)
+	RestoreActionType(ctx context.Context, id int32) error
+	RestoreAnnouncement(ctx context.Context, id int32) error
+	RestoreCategory(ctx context.Context, id int32) error
+	RestoreLanguage(ctx context.Context, id int32) error
+	RestoreRole(ctx context.Context, id int32) error
+	RestoreStorage(ctx context.Context, id int32) error
+	RestoreUser(ctx context.Context, id int32) error
+	RestoreUserStatus(ctx context.Context, id int32) error
 	UpdateActionType(ctx context.Context, arg UpdateActionTypeParams) (ActionType, error)
 	UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncementParams) (Announcement, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)

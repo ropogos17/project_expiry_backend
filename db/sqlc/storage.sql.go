@@ -54,29 +54,15 @@ func (q *Queries) CreateStorage(ctx context.Context, arg CreateStorageParams) (S
 	return i, err
 }
 
-const deleteStorage = `-- name: DeleteStorage :one
+const deleteStorage = `-- name: DeleteStorage :exec
 UPDATE storages
 SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, description, location, shelves, has_image, owner, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteStorage(ctx context.Context, id int32) (Storage, error) {
-	row := q.db.QueryRowContext(ctx, deleteStorage, id)
-	var i Storage
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Location,
-		&i.Shelves,
-		&i.HasImage,
-		&i.Owner,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) DeleteStorage(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteStorage, id)
+	return err
 }
 
 const getStorage = `-- name: GetStorage :one
@@ -204,29 +190,15 @@ func (q *Queries) ListStoragesByOwner(ctx context.Context, arg ListStoragesByOwn
 	return items, nil
 }
 
-const restoreStorage = `-- name: RestoreStorage :one
+const restoreStorage = `-- name: RestoreStorage :exec
 UPDATE storages
 SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING id, name, description, location, shelves, has_image, owner, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) RestoreStorage(ctx context.Context, id int32) (Storage, error) {
-	row := q.db.QueryRowContext(ctx, restoreStorage, id)
-	var i Storage
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Description,
-		&i.Location,
-		&i.Shelves,
-		&i.HasImage,
-		&i.Owner,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) RestoreStorage(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, restoreStorage, id)
+	return err
 }
 
 const updateStorage = `-- name: UpdateStorage :one

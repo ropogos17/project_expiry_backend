@@ -28,24 +28,15 @@ func (q *Queries) CreateUserStatus(ctx context.Context, name string) (UserStatus
 	return i, err
 }
 
-const deleteUserStatus = `-- name: DeleteUserStatus :one
+const deleteUserStatus = `-- name: DeleteUserStatus :exec
 UPDATE user_statuses
 SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) DeleteUserStatus(ctx context.Context, id int32) (UserStatus, error) {
-	row := q.db.QueryRowContext(ctx, deleteUserStatus, id)
-	var i UserStatus
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) DeleteUserStatus(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, deleteUserStatus, id)
+	return err
 }
 
 const getUserStatus = `-- name: GetUserStatus :one
@@ -117,24 +108,15 @@ func (q *Queries) ListUserStatuses(ctx context.Context, arg ListUserStatusesPara
 	return items, nil
 }
 
-const restoreUserStatus = `-- name: RestoreUserStatus :one
+const restoreUserStatus = `-- name: RestoreUserStatus :exec
 UPDATE user_statuses
 SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL
-RETURNING id, name, deleted_at, created_at, updated_at
 `
 
-func (q *Queries) RestoreUserStatus(ctx context.Context, id int32) (UserStatus, error) {
-	row := q.db.QueryRowContext(ctx, restoreUserStatus, id)
-	var i UserStatus
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
+func (q *Queries) RestoreUserStatus(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, restoreUserStatus, id)
+	return err
 }
 
 const updateUserStatus = `-- name: UpdateUserStatus :one
