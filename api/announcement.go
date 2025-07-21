@@ -60,7 +60,7 @@ func requireAdminOrEditor() gin.HandlerFunc {
 		}
 
 		// Check if user is superuser or has admin/editor role (assuming role IDs 1=admin, 2=editor)
-		if !user.IsSuperuser && user.RoleID != 1 && user.RoleID != 2 {
+		if !user.IsSuperuser && user.RoleID != 2 && user.RoleID != 3 {
 			c.JSON(http.StatusForbidden, errorResponse(errors.New("insufficient permissions: admin or editor role required")))
 			c.Abort()
 			return
