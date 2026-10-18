@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	db "project_expiry_backend/db/sqlc"
-	"project_expiry_backend/token"
 )
 
 // Request structs for announcements
@@ -44,30 +43,6 @@ type deleteAnnouncementRequest struct {
 
 type restoreAnnouncementRequest struct {
 	ID int32 `uri:"id" binding:"required,min=1"`
-}
-
-// Role-based access control middleware
-func requireAdminOrEditor() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
-
-		// Get user to check role and superuser status
-		user, err := c.Keys["server"].(*Server).store.GetUserByUsername(c, authPayload.Username)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not found")))
-			c.Abort()
-			return
-		}
-
-		// Check if user is superuser or has admin/editor role (assuming role IDs 1=admin, 2=editor)
-		if !user.IsSuperuser && user.RoleID != 2 && user.RoleID != 3 {
-			c.JSON(http.StatusForbidden, errorResponse(errors.New("insufficient permissions: admin or editor role required")))
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
 }
 
 // User endpoints (list and get announcements)

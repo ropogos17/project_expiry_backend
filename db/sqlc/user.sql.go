@@ -291,7 +291,7 @@ UPDATE users SET
                  status_id = $18,
                  deleted_at = $19,
                  updated_at = $20
-WHERE id = $1 AND deleted_at IS NOT NULL
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at
 `
 

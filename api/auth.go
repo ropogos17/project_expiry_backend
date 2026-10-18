@@ -106,7 +106,7 @@ func (server *Server) registerUser(ctx *gin.Context) {
 		Phone:       "",
 		HasAvatar:   false,
 		Password:    hashedPassword,
-		RoleID:      7, // TODO: change this
+		RoleID:      1, // TODO: change this
 		IsSuperuser: false,
 		StatusID:    1,
 	}

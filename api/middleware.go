@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	db "project_expiry_backend/db/sqlc"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -50,5 +51,29 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 
 		ctx.Set(authorizationPayloadKey, payload)
 		ctx.Next()
+	}
+}
+
+// Role-based access control middleware
+func requireAdminOrEditor(store *db.Store) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+
+		// Get user to check role and superuser status
+		user, err := store.GetUserByUsername(c, authPayload.Username)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not found")))
+			c.Abort()
+			return
+		}
+
+		// Check if user is superuser or has admin/editor role (assuming role IDs 1=admin, 2=editor)
+		if !user.IsSuperuser && user.RoleID != 2 && user.RoleID != 3 {
+			c.JSON(http.StatusForbidden, errorResponse(errors.New("insufficient permissions: admin or editor role required")))
+			c.Abort()
+			return
+		}
+
+		c.Next()
 	}
 }

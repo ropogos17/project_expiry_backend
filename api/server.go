@@ -62,7 +62,7 @@ func (server *Server) SetupRouter() {
 	}
 
 	// Admin/Editor only routes for announcements
-	adminRoutes := router.Group("/").Use(authMiddleware, requireAdminOrEditor())
+	adminRoutes := router.Group("/").Use(authMiddleware, requireAdminOrEditor(server.store))
 	{
 		adminRoutes.POST("/announcements", server.createAnnouncement)
 		adminRoutes.PUT("/announcements/:id", server.updateAnnouncement)

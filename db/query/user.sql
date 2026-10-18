@@ -53,7 +53,7 @@ UPDATE users SET
                  status_id = $18,
                  deleted_at = $19,
                  updated_at = $20
-WHERE id = $1 AND deleted_at IS NOT NULL
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
 -- name: DeleteUser :exec
