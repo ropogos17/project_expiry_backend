@@ -1,5 +1,6 @@
 package api
 
+/*
 import (
 	"database/sql"
 	"errors"
@@ -614,3 +615,4 @@ func (server *Server) deleteItem(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "item deleted successfully"})
 }
+*/

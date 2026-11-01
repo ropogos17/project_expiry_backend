@@ -1,5 +1,6 @@
 package api
 
+/*
 import (
 	"database/sql"
 	"errors"
@@ -38,7 +39,7 @@ func (server *Server) getActionType(c *gin.Context) {
 		return
 	}
 
-	actionType, err := server.store.GetActionType(c, req.ID)
+	actionType, err := server.store.GetActionTypeByID(c, req.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, errorResponse(err))
@@ -86,7 +87,7 @@ func (server *Server) deleteActionType(c *gin.Context) {
 		return
 	}
 
-	if err := server.store.DeleteActionType(c, req.ID); err != nil {
+	if err := server.store.HardDeleteActionType(c, req.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -113,7 +114,7 @@ func (server *Server) updateActionType(c *gin.Context) {
 		return
 	}
 
-	currentActionType, err := server.store.GetActionType(c, uriReq.ID)
+	currentActionType, err := server.store.GetActionTypeByID(c, uriReq.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "action type not found"})
@@ -140,3 +141,4 @@ func (server *Server) updateActionType(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, actionType)
 }
+*/

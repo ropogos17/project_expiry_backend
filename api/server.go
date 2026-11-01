@@ -56,14 +56,14 @@ func (server *Server) SetupRouter() {
 		protectedRoutes.DELETE("/users/:id", server.deleteUser)
 
 		// Role routes
-		protectedRoutes.POST("/roles", server.createRole)
+		/*protectedRoutes.POST("/roles", server.createRole)
 		protectedRoutes.GET("/roles/:id", server.getRole)
 		protectedRoutes.GET("/roles", server.listRoles)
 		protectedRoutes.DELETE("/roles/:id", server.deleteRole)
 		protectedRoutes.PUT("/roles/:id", server.updateRole)
 
 		protectedRoutes.GET("/announcements", server.listAnnouncements)
-		protectedRoutes.GET("/announcements/:id", server.getAnnouncement)
+		protectedRoutes.GET("/announcements/:id", server.getAnnouncement)*/
 	}
 
 	// Admin/Editor only routes for announcements
@@ -72,11 +72,11 @@ func (server *Server) SetupRouter() {
 		// User routes
 		adminRoutes.GET("/users", server.listUsers)
 
-		adminRoutes.POST("/announcements", server.createAnnouncement)
+		/*adminRoutes.POST("/announcements", server.createAnnouncement)
 		adminRoutes.PUT("/announcements/:id", server.updateAnnouncement)
 		adminRoutes.DELETE("/announcements/:id", server.deleteAnnouncement)
 		adminRoutes.POST("/announcements/:id/restore", server.restoreAnnouncement)
-		adminRoutes.DELETE("/announcements/:id/hard", server.hardDeleteAnnouncement)
+		adminRoutes.DELETE("/announcements/:id/hard", server.hardDeleteAnnouncement)*/
 	}
 
 	server.router = router

@@ -1,5 +1,6 @@
 package api
 
+/*
 import (
 	"database/sql"
 	"errors"
@@ -140,3 +141,4 @@ func (server *Server) updateRole(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, updatedRole)
 }
+*/

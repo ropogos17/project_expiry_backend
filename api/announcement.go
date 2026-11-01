@@ -1,5 +1,6 @@
 package api
 
+/*
 import (
 	"database/sql"
 	"errors"
@@ -242,3 +243,4 @@ func (server *Server) hardDeleteAnnouncement(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "announcement permanently deleted"})
 }
+*/
