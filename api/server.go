@@ -50,6 +50,11 @@ func (server *Server) SetupRouter() {
 	// Protected routes
 	protectedRoutes := router.Group("/").Use(authMiddleware)
 	{
+		// User routes
+		protectedRoutes.GET("/users/:id", server.getUser)
+		protectedRoutes.PUT("/users/:id", server.updateUser)
+		protectedRoutes.DELETE("/users/:id", server.deleteUser)
+
 		// Role routes
 		protectedRoutes.POST("/roles", server.createRole)
 		protectedRoutes.GET("/roles/:id", server.getRole)
@@ -64,6 +69,9 @@ func (server *Server) SetupRouter() {
 	// Admin/Editor only routes for announcements
 	adminRoutes := router.Group("/").Use(authMiddleware, requireAdminOrEditor(server.store))
 	{
+		// User routes
+		adminRoutes.GET("/users", server.listUsers)
+
 		adminRoutes.POST("/announcements", server.createAnnouncement)
 		adminRoutes.PUT("/announcements/:id", server.updateAnnouncement)
 		adminRoutes.DELETE("/announcements/:id", server.deleteAnnouncement)
