@@ -46,6 +46,7 @@ type Querier interface {
 	HardDeleteItem(ctx context.Context, id int32) error
 	HardDeleteLog(ctx context.Context, id int32) error
 	HardDeleteRefreshToken(ctx context.Context, id uuid.UUID) error
+	HardDeleteRefreshTokensByUser(ctx context.Context, userID int32) error
 	HardDeleteRole(ctx context.Context, id int32) error
 	HardDeleteShare(ctx context.Context, id int32) error
 	HardDeleteStorage(ctx context.Context, id int32) error
@@ -89,6 +90,7 @@ type Querier interface {
 	UpdateShare(ctx context.Context, arg UpdateShareParams) (Share, error)
 	UpdateStorage(ctx context.Context, arg UpdateStorageParams) (Storage, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }
 
 var _ Querier = (*Queries)(nil)

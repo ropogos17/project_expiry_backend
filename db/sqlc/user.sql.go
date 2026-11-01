@@ -290,7 +290,6 @@ type UpdateUserParams struct {
 	Email             string         `json:"email"`
 	Phone             sql.NullString `json:"phone"`
 	HasAvatar         bool           `json:"has_avatar"`
-	Password          string         `json:"password"`
 	EmailVerified     bool           `json:"email_verified"`
 	PhoneVerified     bool           `json:"phone_verified"`
 	TwoFactorEnabled  bool           `json:"two_factor_enabled"`
@@ -311,7 +310,6 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.Email,
 		arg.Phone,
 		arg.HasAvatar,
-		arg.Password,
 		arg.EmailVerified,
 		arg.PhoneVerified,
 		arg.TwoFactorEnabled,
@@ -347,4 +345,22 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users
+SET password = $2,
+    password_changed_at = NOW(),
+    updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateUserPasswordParams struct {
+	ID       int32  `json:"id"`
+	Password string `json:"password"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.ID, arg.Password)
+	return err
 }

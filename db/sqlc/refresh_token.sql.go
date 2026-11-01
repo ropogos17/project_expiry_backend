@@ -86,6 +86,16 @@ func (q *Queries) HardDeleteRefreshToken(ctx context.Context, id uuid.UUID) erro
 	return err
 }
 
+const hardDeleteRefreshTokensByUser = `-- name: HardDeleteRefreshTokensByUser :exec
+DELETE FROM refresh_tokens
+WHERE user_id = $1
+`
+
+func (q *Queries) HardDeleteRefreshTokensByUser(ctx context.Context, userID int32) error {
+	_, err := q.db.ExecContext(ctx, hardDeleteRefreshTokensByUser, userID)
+	return err
+}
+
 const listRefreshTokens = `-- name: ListRefreshTokens :many
 SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
 ORDER BY issued_at DESC

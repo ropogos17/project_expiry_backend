@@ -38,20 +38,26 @@ UPDATE users SET
                  email = $4,
                  phone = $5,
                  has_avatar = $6,
-                 password = $7,
-                 email_verified = $8,
-                 phone_verified = $9,
-                 two_factor_enabled = $10,
-                 two_factor_secret = $11,
-                 last_login = $12,
-                 login_attempts = $13,
-                 locked_until = $14,
-                 password_changed_at = $15,
-                 role_id = $16,
-                 is_superuser = $17,
+                 email_verified = $7,
+                 phone_verified = $8,
+                 two_factor_enabled = $9,
+                 two_factor_secret = $10,
+                 last_login = $11,
+                 login_attempts = $12,
+                 locked_until = $13,
+                 password_changed_at = $14,
+                 role_id = $15,
+                 is_superuser = $16,
                  updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
+
+-- name: UpdateUserPassword :exec
+UPDATE users
+SET password = $2,
+    password_changed_at = NOW(),
+    updated_at = NOW()
+WHERE id = $1;
 
 -- name: SoftDeleteUser :exec
 UPDATE users
