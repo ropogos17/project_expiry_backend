@@ -4,14 +4,15 @@ import (
 	"context"
 	"database/sql"
 	db "project_expiry_backend/db/sqlc"
-	"project_expiry_backend/utils"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
 func createRandomRole(t *testing.T) db.Role {
-	arg := RandomRole()
+	arg := uuid.New().String()
+
 	role, err := testQueries.CreateRole(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, role)
@@ -39,7 +40,7 @@ func TestGetRoleByID(t *testing.T) {
 
 func TestUpdateRole(t *testing.T) {
 	role1 := createRandomRole(t)
-	arg := db.UpdateRoleParams{ID: role1.ID, Name: RandomRole()}
+	arg := db.UpdateRoleParams{ID: role1.ID, Name: uuid.New().String()}
 
 	role2, err := testQueries.UpdateRole(context.Background(), arg)
 
@@ -100,10 +101,4 @@ func TestRoleExistsByName(t *testing.T) {
 
 	require.NoError(t, err)
 	require.False(t, exists)
-}
-
-// Utils
-
-func RandomRole() string {
-	return utils.RandomString(utils.RandomInt(1, 100))
 }

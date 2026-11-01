@@ -11,8 +11,8 @@ import (
 )
 
 const createAnnouncement = `-- name: CreateAnnouncement :one
-INSERT INTO announcements (name, description, external_link)
-VALUES ($1, $2, $3)
+INSERT INTO announcements (name, description, external_link, created_by)
+VALUES ($1, $2, $3, $4)
 RETURNING id, name, description, external_link, created_at, updated_at, created_by, deleted_at
 `
 
@@ -20,10 +20,16 @@ type CreateAnnouncementParams struct {
 	Name         string         `json:"name"`
 	Description  sql.NullString `json:"description"`
 	ExternalLink sql.NullString `json:"external_link"`
+	CreatedBy    int32          `json:"created_by"`
 }
 
 func (q *Queries) CreateAnnouncement(ctx context.Context, arg CreateAnnouncementParams) (Announcement, error) {
-	row := q.db.QueryRowContext(ctx, createAnnouncement, arg.Name, arg.Description, arg.ExternalLink)
+	row := q.db.QueryRowContext(ctx, createAnnouncement,
+		arg.Name,
+		arg.Description,
+		arg.ExternalLink,
+		arg.CreatedBy,
+	)
 	var i Announcement
 	err := row.Scan(
 		&i.ID,
@@ -141,6 +147,7 @@ SET
     name = $2,
     description = $3,
     external_link = $4,
+    created_by = $5,
     updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING id, name, description, external_link, created_at, updated_at, created_by, deleted_at
@@ -151,6 +158,7 @@ type UpdateAnnouncementParams struct {
 	Name         string         `json:"name"`
 	Description  sql.NullString `json:"description"`
 	ExternalLink sql.NullString `json:"external_link"`
+	CreatedBy    int32          `json:"created_by"`
 }
 
 func (q *Queries) UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncementParams) (Announcement, error) {
@@ -159,6 +167,7 @@ func (q *Queries) UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncement
 		arg.Name,
 		arg.Description,
 		arg.ExternalLink,
+		arg.CreatedBy,
 	)
 	var i Announcement
 	err := row.Scan(

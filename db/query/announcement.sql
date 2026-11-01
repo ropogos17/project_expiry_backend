@@ -1,6 +1,6 @@
 -- name: CreateAnnouncement :one
-INSERT INTO announcements (name, description, external_link)
-VALUES ($1, $2, $3)
+INSERT INTO announcements (name, description, external_link, created_by)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: GetAnnouncementByID :one
@@ -19,6 +19,7 @@ SET
     name = $2,
     description = $3,
     external_link = $4,
+    created_by = $5,
     updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
