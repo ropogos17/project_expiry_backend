@@ -2,21 +2,25 @@
 INSERT INTO shares (
     source_user_id, storage_id, target_user_id, can_share
 )
-VALUES (
-           $1, $2, $3, $4
-       )
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
--- name: GetShare :one
+-- name: GetShareByID :one
 SELECT * FROM shares
 WHERE id = $1 LIMIT 1;
 
--- name: GetShareByStorageAndOwner :one
+-- name: GetShareByStorageAndTargetUser :one
 SELECT * FROM shares
 WHERE storage_id = $1 AND target_user_id = $2 LIMIT 1;
 
 -- name: ListShares :many
 SELECT * FROM shares
+ORDER BY id
+LIMIT $1 OFFSET $2;
+
+-- name: ListSharesByUser :many
+SELECT * FROM shares
+WHERE source_user_id = $3
 ORDER BY id
 LIMIT $1 OFFSET $2;
 
@@ -31,6 +35,6 @@ SET
 WHERE id = $1
 RETURNING *;
 
--- name: DeleteShare :exec
+-- name: HardDeleteShare :exec
 DELETE FROM shares
 WHERE id = $1;

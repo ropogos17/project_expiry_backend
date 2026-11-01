@@ -8,7 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"time"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -20,25 +19,23 @@ INSERT INTO users (
     has_avatar,
     password,
     role_id,
-    is_superuser,
-    status_id
+    is_superuser
 )
 VALUES (
-           $1, $2, $3, $4, $5, $6, $7, $8, $9
+           $1, $2, $3, $4, $5, $6, $7, $8
        )
-RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at
+RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	Name        string `json:"name"`
-	Username    string `json:"username"`
-	Email       string `json:"email"`
-	Phone       string `json:"phone"`
-	HasAvatar   bool   `json:"has_avatar"`
-	Password    string `json:"password"`
-	RoleID      int32  `json:"role_id"`
-	IsSuperuser bool   `json:"is_superuser"`
-	StatusID    int32  `json:"status_id"`
+	Name        string         `json:"name"`
+	Username    string         `json:"username"`
+	Email       string         `json:"email"`
+	Phone       sql.NullString `json:"phone"`
+	HasAvatar   bool           `json:"has_avatar"`
+	Password    string         `json:"password"`
+	RoleID      int32          `json:"role_id"`
+	IsSuperuser bool           `json:"is_superuser"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -51,7 +48,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Password,
 		arg.RoleID,
 		arg.IsSuperuser,
-		arg.StatusID,
 	)
 	var i User
 	err := row.Scan(
@@ -72,52 +68,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PasswordChangedAt,
 		&i.RoleID,
 		&i.IsSuperuser,
-		&i.StatusID,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const deleteUser = `-- name: DeleteUser :exec
-UPDATE users
-SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-`
-
-func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteUser, id)
-	return err
-}
-
-const getUser = `-- name: GetUser :one
-SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
-WHERE id = $1 LIMIT 1
-`
-
-func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUser, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Username,
-		&i.Email,
-		&i.Phone,
-		&i.HasAvatar,
-		&i.Password,
-		&i.EmailVerified,
-		&i.PhoneVerified,
-		&i.TwoFactorEnabled,
-		&i.TwoFactorSecret,
-		&i.LastLogin,
-		&i.LoginAttempts,
-		&i.LockedUntil,
-		&i.PasswordChangedAt,
-		&i.RoleID,
-		&i.IsSuperuser,
-		&i.StatusID,
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -126,7 +76,7 @@ func (q *Queries) GetUser(ctx context.Context, id int32) (User, error) {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
+SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at FROM users
 WHERE email = $1 LIMIT 1
 `
 
@@ -151,7 +101,39 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.PasswordChangedAt,
 		&i.RoleID,
 		&i.IsSuperuser,
-		&i.StatusID,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at FROM users
+WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Username,
+		&i.Email,
+		&i.Phone,
+		&i.HasAvatar,
+		&i.Password,
+		&i.EmailVerified,
+		&i.PhoneVerified,
+		&i.TwoFactorEnabled,
+		&i.TwoFactorSecret,
+		&i.LastLogin,
+		&i.LoginAttempts,
+		&i.LockedUntil,
+		&i.PasswordChangedAt,
+		&i.RoleID,
+		&i.IsSuperuser,
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -160,7 +142,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
+SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at FROM users
 WHERE username = $1 LIMIT 1
 `
 
@@ -185,7 +167,6 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.PasswordChangedAt,
 		&i.RoleID,
 		&i.IsSuperuser,
-		&i.StatusID,
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -204,7 +185,7 @@ func (q *Queries) HardDeleteUser(ctx context.Context, id int32) error {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at FROM users
+SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at FROM users
 ORDER BY id
 LIMIT $1 OFFSET $2
 `
@@ -241,7 +222,6 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.PasswordChangedAt,
 			&i.RoleID,
 			&i.IsSuperuser,
-			&i.StatusID,
 			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -270,6 +250,17 @@ func (q *Queries) RestoreUser(ctx context.Context, id int32) error {
 	return err
 }
 
+const softDeleteUser = `-- name: SoftDeleteUser :exec
+UPDATE users
+SET deleted_at = NOW(), updated_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteUser(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, softDeleteUser, id)
+	return err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users SET
                  name = $2,
@@ -288,11 +279,9 @@ UPDATE users SET
                  password_changed_at = $15,
                  role_id = $16,
                  is_superuser = $17,
-                 status_id = $18,
-                 deleted_at = $19,
-                 updated_at = $20
+                 updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, status_id, deleted_at, created_at, updated_at
+RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -300,7 +289,7 @@ type UpdateUserParams struct {
 	Name              string         `json:"name"`
 	Username          string         `json:"username"`
 	Email             string         `json:"email"`
-	Phone             string         `json:"phone"`
+	Phone             sql.NullString `json:"phone"`
 	HasAvatar         bool           `json:"has_avatar"`
 	Password          string         `json:"password"`
 	EmailVerified     bool           `json:"email_verified"`
@@ -313,9 +302,6 @@ type UpdateUserParams struct {
 	PasswordChangedAt sql.NullTime   `json:"password_changed_at"`
 	RoleID            int32          `json:"role_id"`
 	IsSuperuser       bool           `json:"is_superuser"`
-	StatusID          int32          `json:"status_id"`
-	DeletedAt         sql.NullTime   `json:"deleted_at"`
-	UpdatedAt         time.Time      `json:"updated_at"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
@@ -337,9 +323,6 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		arg.PasswordChangedAt,
 		arg.RoleID,
 		arg.IsSuperuser,
-		arg.StatusID,
-		arg.DeletedAt,
-		arg.UpdatedAt,
 	)
 	var i User
 	err := row.Scan(
@@ -360,7 +343,6 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.PasswordChangedAt,
 		&i.RoleID,
 		&i.IsSuperuser,
-		&i.StatusID,
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,

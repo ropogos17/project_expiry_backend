@@ -11,39 +11,29 @@ import (
 )
 
 const createAnnouncement = `-- name: CreateAnnouncement :one
-INSERT INTO announcements (
-    name, description, external_link, has_read
-)
-VALUES (
-           $1, $2, $3, $4
-       )
-RETURNING id, name, description, external_link, has_read, deleted_at, created_at, updated_at
+INSERT INTO announcements (name, description, external_link)
+VALUES ($1, $2, $3)
+RETURNING id, name, description, external_link, created_at, updated_at, created_by, deleted_at
 `
 
 type CreateAnnouncementParams struct {
 	Name         string         `json:"name"`
 	Description  sql.NullString `json:"description"`
 	ExternalLink sql.NullString `json:"external_link"`
-	HasRead      bool           `json:"has_read"`
 }
 
 func (q *Queries) CreateAnnouncement(ctx context.Context, arg CreateAnnouncementParams) (Announcement, error) {
-	row := q.db.QueryRowContext(ctx, createAnnouncement,
-		arg.Name,
-		arg.Description,
-		arg.ExternalLink,
-		arg.HasRead,
-	)
+	row := q.db.QueryRowContext(ctx, createAnnouncement, arg.Name, arg.Description, arg.ExternalLink)
 	var i Announcement
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Description,
 		&i.ExternalLink,
-		&i.HasRead,
-		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -59,23 +49,23 @@ func (q *Queries) DeleteAnnouncement(ctx context.Context, id int32) error {
 	return err
 }
 
-const getAnnouncement = `-- name: GetAnnouncement :one
-SELECT id, name, description, external_link, has_read, deleted_at, created_at, updated_at FROM announcements
+const getAnnouncementByID = `-- name: GetAnnouncementByID :one
+SELECT id, name, description, external_link, created_at, updated_at, created_by, deleted_at FROM announcements
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetAnnouncement(ctx context.Context, id int32) (Announcement, error) {
-	row := q.db.QueryRowContext(ctx, getAnnouncement, id)
+func (q *Queries) GetAnnouncementByID(ctx context.Context, id int32) (Announcement, error) {
+	row := q.db.QueryRowContext(ctx, getAnnouncementByID, id)
 	var i Announcement
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Description,
 		&i.ExternalLink,
-		&i.HasRead,
-		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -91,7 +81,7 @@ func (q *Queries) HardDeleteAnnouncement(ctx context.Context, id int32) error {
 }
 
 const listAnnouncements = `-- name: ListAnnouncements :many
-SELECT id, name, description, external_link, has_read, deleted_at, created_at, updated_at FROM announcements
+SELECT id, name, description, external_link, created_at, updated_at, created_by, deleted_at FROM announcements
 WHERE deleted_at IS NULL
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
@@ -116,10 +106,10 @@ func (q *Queries) ListAnnouncements(ctx context.Context, arg ListAnnouncementsPa
 			&i.Name,
 			&i.Description,
 			&i.ExternalLink,
-			&i.HasRead,
-			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreatedBy,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -151,10 +141,9 @@ SET
     name = $2,
     description = $3,
     external_link = $4,
-    has_read = $5,
     updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, description, external_link, has_read, deleted_at, created_at, updated_at
+RETURNING id, name, description, external_link, created_at, updated_at, created_by, deleted_at
 `
 
 type UpdateAnnouncementParams struct {
@@ -162,7 +151,6 @@ type UpdateAnnouncementParams struct {
 	Name         string         `json:"name"`
 	Description  sql.NullString `json:"description"`
 	ExternalLink sql.NullString `json:"external_link"`
-	HasRead      bool           `json:"has_read"`
 }
 
 func (q *Queries) UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncementParams) (Announcement, error) {
@@ -171,7 +159,6 @@ func (q *Queries) UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncement
 		arg.Name,
 		arg.Description,
 		arg.ExternalLink,
-		arg.HasRead,
 	)
 	var i Announcement
 	err := row.Scan(
@@ -179,10 +166,10 @@ func (q *Queries) UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncement
 		&i.Name,
 		&i.Description,
 		&i.ExternalLink,
-		&i.HasRead,
-		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreatedBy,
+		&i.DeletedAt,
 	)
 	return i, err
 }

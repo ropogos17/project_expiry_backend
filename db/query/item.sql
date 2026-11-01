@@ -1,20 +1,18 @@
 -- name: CreateItem :one
 INSERT INTO items (
-    name, category_id, description, quantity, has_image, stored_at, expires_at, storage_id, shelf, last_modified
+    name, category_id, description, quantity, has_image, stored_at, expires_at, storage_id, shelf, last_modified_by
 )
-VALUES (
-           $1, $2, $3, $4, $5, $6,
-           $7, $8, $9, $10
-       )
+VALUES ($1, $2, $3, $4, $5, $6,
+    $7, $8, $9, $10)
 RETURNING *;
 
--- name: GetItem :one
+-- name: GetItemByID :one
 SELECT * FROM items
 WHERE id = $1 LIMIT 1;
 
 -- name: ListItemsByStorage :many
 SELECT * FROM items
-WHERE storage_id = $1 AND is_deleted = false
+WHERE storage_id = $1 AND deleted_at IS NULL
 ORDER BY expires_at
 LIMIT $2 OFFSET $3;
 
@@ -22,59 +20,59 @@ LIMIT $2 OFFSET $3;
 SELECT DISTINCT i.* FROM items i
 JOIN storages s ON i.storage_id = s.id
 LEFT JOIN shares sh ON s.id = sh.storage_id
-WHERE (s.owner = $1 OR sh.target_user_id = $1) AND i.is_deleted = false
+WHERE (s.owner = $1 OR sh.target_user_id = $1) AND i.deleted_at IS NULL
 ORDER BY i.expires_at
 LIMIT $2 OFFSET $3;
 
--- name: ListActiveItemsByStorageWithTime :many
+-- name: ListActiveItemsByStorage :many
 SELECT * FROM items
 WHERE storage_id = $1
-  AND is_deleted = false
+  AND deleted_at IS NULL
   AND expires_at > $2
 ORDER BY expires_at
 LIMIT $3 OFFSET $4;
 
--- name: ListActiveItemsByUserWithTime :many
+-- name: ListActiveItemsByUser :many
 SELECT DISTINCT i.* FROM items i
 JOIN storages s ON i.storage_id = s.id
 LEFT JOIN shares sh ON s.id = sh.storage_id
 WHERE (s.owner = $1 OR sh.target_user_id = $1)
-  AND i.is_deleted = false
+  AND i.deleted_at IS NULL
   AND i.expires_at > $2
 ORDER BY i.expires_at
 LIMIT $3 OFFSET $4;
 
--- name: ListExpiredItemsByStorageWithTime :many
+-- name: ListExpiredItemsByStorage :many
 SELECT * FROM items
 WHERE storage_id = $1
-  AND is_deleted = false
-  AND expires_at > $2
+  AND deleted_at IS NULL
+  AND expires_at <= $2
 ORDER BY expires_at
 LIMIT $3 OFFSET $4;
 
--- name: ListExpiredItemsByUserWithTime :many
+-- name: ListExpiredItemsByUser :many
 SELECT DISTINCT i.* FROM items i
 JOIN storages s ON i.storage_id = s.id
 LEFT JOIN shares sh ON s.id = sh.storage_id
 WHERE (s.owner = $1 OR sh.target_user_id = $1)
-  AND i.is_deleted = false
+  AND i.deleted_at IS NULL
   AND i.expires_at <= $2
 ORDER BY i.expires_at
 LIMIT $3 OFFSET $4;
 
--- name: ListDeletedItemsByStorageWithTime :many
+-- name: ListDeletedItemsByStorage :many
 SELECT * FROM items
 WHERE storage_id = $1
-  AND is_deleted = true
+  AND deleted_at IS NOT NULL
 ORDER BY expires_at
 LIMIT $2 OFFSET $3;
 
--- name: ListDeletedItemsByUserWithTime :many
+-- name: ListDeletedItemsByUser :many
 SELECT DISTINCT i.* FROM items i
 JOIN storages s ON i.storage_id = s.id
 LEFT JOIN shares sh ON s.id = sh.storage_id
 WHERE (s.owner = $1 OR sh.target_user_id = $1)
-  AND i.is_deleted = true
+  AND i.deleted_at IS NOT NULL
 ORDER BY i.expires_at
 LIMIT $2 OFFSET $3;
 
@@ -91,19 +89,18 @@ SET
     description = $4,
     quantity = $5,
     has_image = $6,
-    is_deleted = $7,
-    stored_at = $8,
-    updated_at = $9,
-    expires_at = $10,
-    storage_id = $11,
-    shelf = $12,
-    last_modified = $13
-WHERE id = $1 AND is_deleted IS NULL
+    stored_at = $7,
+    updated_at = NOW(),
+    expires_at = $8,
+    storage_id = $9,
+    shelf = $10,
+    last_modified_by = $11
+WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
 -- name: DeleteItem :exec
 UPDATE items
-SET is_deleted = true, updated_at = NOW()
+SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: RestoreItem :exec
@@ -113,4 +110,4 @@ WHERE id = $1 AND deleted_at IS NOT NULL;
 
 -- name: HardDeleteItem :exec
 DELETE FROM items
-WHERE id = $1 AND deleted_at IS NULL;
+WHERE id = $1;

@@ -12,48 +12,25 @@ import (
 const createRole = `-- name: CreateRole :one
 INSERT INTO roles (name)
 VALUES ($1)
-RETURNING id, name, deleted_at, created_at, updated_at
+RETURNING id, name
 `
 
 func (q *Queries) CreateRole(ctx context.Context, name string) (Role, error) {
 	row := q.db.QueryRowContext(ctx, createRole, name)
 	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
-const deleteRole = `-- name: DeleteRole :exec
-UPDATE roles
-SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-`
-
-func (q *Queries) DeleteRole(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteRole, id)
-	return err
-}
-
-const getRole = `-- name: GetRole :one
-SELECT id, name, deleted_at, created_at, updated_at FROM roles
+const getRoleByID = `-- name: GetRoleByID :one
+SELECT id, name FROM roles
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetRole(ctx context.Context, id int32) (Role, error) {
-	row := q.db.QueryRowContext(ctx, getRole, id)
+func (q *Queries) GetRoleByID(ctx context.Context, id int32) (Role, error) {
+	row := q.db.QueryRowContext(ctx, getRoleByID, id)
 	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
@@ -68,9 +45,8 @@ func (q *Queries) HardDeleteRole(ctx context.Context, id int32) error {
 }
 
 const listRoles = `-- name: ListRoles :many
-SELECT id, name, deleted_at, created_at, updated_at FROM roles
-WHERE deleted_at IS NULL
-ORDER BY created_at DESC
+SELECT id, name FROM roles
+ORDER BY id
 LIMIT $1 OFFSET $2
 `
 
@@ -88,13 +64,7 @@ func (q *Queries) ListRoles(ctx context.Context, arg ListRolesParams) ([]Role, e
 	items := []Role{}
 	for rows.Next() {
 		var i Role
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.DeletedAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -108,22 +78,25 @@ func (q *Queries) ListRoles(ctx context.Context, arg ListRolesParams) ([]Role, e
 	return items, nil
 }
 
-const restoreRole = `-- name: RestoreRole :exec
-UPDATE roles
-SET deleted_at = NULL, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NOT NULL
+const roleExistsByName = `-- name: RoleExistsByName :one
+SELECT EXISTS (
+    SELECT 1 FROM roles
+    WHERE name = $1
+)
 `
 
-func (q *Queries) RestoreRole(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, restoreRole, id)
-	return err
+func (q *Queries) RoleExistsByName(ctx context.Context, name string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, roleExistsByName, name)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const updateRole = `-- name: UpdateRole :one
 UPDATE roles
-SET name = $2, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, deleted_at, created_at, updated_at
+SET name = $2
+WHERE id = $1
+RETURNING id, name
 `
 
 type UpdateRoleParams struct {
@@ -134,12 +107,6 @@ type UpdateRoleParams struct {
 func (q *Queries) UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error) {
 	row := q.db.QueryRowContext(ctx, updateRole, arg.ID, arg.Name)
 	var i Role
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }

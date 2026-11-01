@@ -11,102 +11,83 @@ import (
 )
 
 type Querier interface {
+	ActionTypeExistsByName(ctx context.Context, name string) (bool, error)
+	CategoryExistsByName(ctx context.Context, name string) (bool, error)
 	CreateActionType(ctx context.Context, name string) (ActionType, error)
 	CreateAnnouncement(ctx context.Context, arg CreateAnnouncementParams) (Announcement, error)
 	CreateCategory(ctx context.Context, name string) (Category, error)
 	CreateItem(ctx context.Context, arg CreateItemParams) (Item, error)
-	CreateLanguage(ctx context.Context, arg CreateLanguageParams) (Language, error)
 	CreateLog(ctx context.Context, arg CreateLogParams) (Log, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateRole(ctx context.Context, name string) (Role, error)
 	CreateShare(ctx context.Context, arg CreateShareParams) (Share, error)
-	CreateShoppingListItem(ctx context.Context, arg CreateShoppingListItemParams) (ShoppingListItem, error)
 	CreateStorage(ctx context.Context, arg CreateStorageParams) (Storage, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	CreateUserStatus(ctx context.Context, name string) (UserStatus, error)
-	DeleteActionType(ctx context.Context, id int32) error
 	DeleteAnnouncement(ctx context.Context, id int32) error
-	DeleteCategory(ctx context.Context, id int32) error
 	DeleteItem(ctx context.Context, id int32) error
-	DeleteLanguage(ctx context.Context, id int32) error
-	DeleteLog(ctx context.Context, id int32) error
-	DeleteRefreshToken(ctx context.Context, id uuid.UUID) error
-	DeleteRole(ctx context.Context, id int32) error
-	DeleteShare(ctx context.Context, id int32) error
-	DeleteShoppingListItem(ctx context.Context, id int32) error
 	DeleteStorage(ctx context.Context, id int32) error
-	DeleteUser(ctx context.Context, id int32) error
-	DeleteUserStatus(ctx context.Context, id int32) error
-	GetActionType(ctx context.Context, id int32) (ActionType, error)
-	GetAnnouncement(ctx context.Context, id int32) (Announcement, error)
-	GetCategory(ctx context.Context, id int32) (Category, error)
-	GetItem(ctx context.Context, id int32) (Item, error)
-	GetLanguage(ctx context.Context, id int32) (Language, error)
-	GetLog(ctx context.Context, id int32) (Log, error)
-	GetRefreshToken(ctx context.Context, id uuid.UUID) (RefreshToken, error)
-	GetRole(ctx context.Context, id int32) (Role, error)
-	GetShare(ctx context.Context, id int32) (Share, error)
-	GetShareByStorageAndOwner(ctx context.Context, arg GetShareByStorageAndOwnerParams) (Share, error)
-	GetShoppingListItem(ctx context.Context, id int32) (ShoppingListItem, error)
-	GetStorage(ctx context.Context, id int32) (Storage, error)
-	GetUser(ctx context.Context, id int32) (User, error)
+	GetActionTypeByID(ctx context.Context, id int32) (ActionType, error)
+	GetAnnouncementByID(ctx context.Context, id int32) (Announcement, error)
+	GetCategoryByID(ctx context.Context, id int32) (Category, error)
+	GetItemByID(ctx context.Context, id int32) (Item, error)
+	GetLogByID(ctx context.Context, id int32) (Log, error)
+	GetRefreshTokenByID(ctx context.Context, id uuid.UUID) (RefreshToken, error)
+	GetRoleByID(ctx context.Context, id int32) (Role, error)
+	GetShareByID(ctx context.Context, id int32) (Share, error)
+	GetShareByStorageAndTargetUser(ctx context.Context, arg GetShareByStorageAndTargetUserParams) (Share, error)
+	GetStorageByID(ctx context.Context, id int32) (Storage, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByID(ctx context.Context, id int32) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
-	GetUserStatus(ctx context.Context, id int32) (UserStatus, error)
 	HardDeleteActionType(ctx context.Context, id int32) error
 	HardDeleteAnnouncement(ctx context.Context, id int32) error
 	HardDeleteCategory(ctx context.Context, id int32) error
 	HardDeleteItem(ctx context.Context, id int32) error
-	HardDeleteLanguage(ctx context.Context, id int32) error
+	HardDeleteLog(ctx context.Context, id int32) error
+	HardDeleteRefreshToken(ctx context.Context, id uuid.UUID) error
 	HardDeleteRole(ctx context.Context, id int32) error
+	HardDeleteShare(ctx context.Context, id int32) error
 	HardDeleteStorage(ctx context.Context, id int32) error
 	HardDeleteUser(ctx context.Context, id int32) error
-	HardDeleteUserStatus(ctx context.Context, id int32) error
 	ListActionTypes(ctx context.Context, arg ListActionTypesParams) ([]ActionType, error)
-	ListActiveItemsByStorageWithTime(ctx context.Context, arg ListActiveItemsByStorageWithTimeParams) ([]Item, error)
-	ListActiveItemsByUserWithTime(ctx context.Context, arg ListActiveItemsByUserWithTimeParams) ([]Item, error)
+	ListActiveItemsByStorage(ctx context.Context, arg ListActiveItemsByStorageParams) ([]Item, error)
+	ListActiveItemsByUser(ctx context.Context, arg ListActiveItemsByUserParams) ([]Item, error)
 	ListAnnouncements(ctx context.Context, arg ListAnnouncementsParams) ([]Announcement, error)
 	ListCategories(ctx context.Context, arg ListCategoriesParams) ([]Category, error)
-	ListDeletedItemsByStorageWithTime(ctx context.Context, arg ListDeletedItemsByStorageWithTimeParams) ([]Item, error)
-	ListDeletedItemsByUserWithTime(ctx context.Context, arg ListDeletedItemsByUserWithTimeParams) ([]Item, error)
-	ListExpiredItemsByStorageWithTime(ctx context.Context, arg ListExpiredItemsByStorageWithTimeParams) ([]Item, error)
-	ListExpiredItemsByUserWithTime(ctx context.Context, arg ListExpiredItemsByUserWithTimeParams) ([]Item, error)
+	ListDeletedItemsByStorage(ctx context.Context, arg ListDeletedItemsByStorageParams) ([]Item, error)
+	ListDeletedItemsByUser(ctx context.Context, arg ListDeletedItemsByUserParams) ([]Item, error)
+	ListExpiredItemsByStorage(ctx context.Context, arg ListExpiredItemsByStorageParams) ([]Item, error)
+	ListExpiredItemsByUser(ctx context.Context, arg ListExpiredItemsByUserParams) ([]Item, error)
 	ListItems(ctx context.Context, arg ListItemsParams) ([]Item, error)
 	ListItemsByStorage(ctx context.Context, arg ListItemsByStorageParams) ([]Item, error)
 	ListItemsByUser(ctx context.Context, arg ListItemsByUserParams) ([]Item, error)
-	ListLanguages(ctx context.Context, arg ListLanguagesParams) ([]Language, error)
 	ListLogs(ctx context.Context, arg ListLogsParams) ([]Log, error)
 	ListRefreshTokens(ctx context.Context, arg ListRefreshTokensParams) ([]RefreshToken, error)
 	ListRefreshTokensByUser(ctx context.Context, arg ListRefreshTokensByUserParams) ([]RefreshToken, error)
 	ListRoles(ctx context.Context, arg ListRolesParams) ([]Role, error)
 	ListShares(ctx context.Context, arg ListSharesParams) ([]Share, error)
-	ListShoppingListItems(ctx context.Context, arg ListShoppingListItemsParams) ([]ShoppingListItem, error)
+	ListSharesByUser(ctx context.Context, arg ListSharesByUserParams) ([]Share, error)
 	ListStorages(ctx context.Context, arg ListStoragesParams) ([]Storage, error)
 	ListStoragesByOwner(ctx context.Context, arg ListStoragesByOwnerParams) ([]Storage, error)
-	ListUserStatuses(ctx context.Context, arg ListUserStatusesParams) ([]UserStatus, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
-	RestoreActionType(ctx context.Context, id int32) error
 	RestoreAnnouncement(ctx context.Context, id int32) error
-	RestoreCategory(ctx context.Context, id int32) error
 	RestoreItem(ctx context.Context, id int32) error
-	RestoreLanguage(ctx context.Context, id int32) error
-	RestoreRole(ctx context.Context, id int32) error
+	RestoreRefreshToken(ctx context.Context, id uuid.UUID) error
 	RestoreStorage(ctx context.Context, id int32) error
 	RestoreUser(ctx context.Context, id int32) error
-	RestoreUserStatus(ctx context.Context, id int32) error
+	RoleExistsByName(ctx context.Context, name string) (bool, error)
+	SoftDeleteRefreshToken(ctx context.Context, id uuid.UUID) error
+	SoftDeleteUser(ctx context.Context, id int32) error
 	UpdateActionType(ctx context.Context, arg UpdateActionTypeParams) (ActionType, error)
 	UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncementParams) (Announcement, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
 	UpdateItem(ctx context.Context, arg UpdateItemParams) (Item, error)
-	UpdateLanguage(ctx context.Context, arg UpdateLanguageParams) (Language, error)
 	UpdateLog(ctx context.Context, arg UpdateLogParams) (Log, error)
 	UpdateRefreshToken(ctx context.Context, arg UpdateRefreshTokenParams) (RefreshToken, error)
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) (Role, error)
 	UpdateShare(ctx context.Context, arg UpdateShareParams) (Share, error)
-	UpdateShoppingListItem(ctx context.Context, arg UpdateShoppingListItemParams) (ShoppingListItem, error)
 	UpdateStorage(ctx context.Context, arg UpdateStorageParams) (Storage, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
-	UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) (UserStatus, error)
 }
 
 var _ Querier = (*Queries)(nil)

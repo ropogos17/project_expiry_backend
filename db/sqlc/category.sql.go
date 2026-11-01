@@ -9,51 +9,42 @@ import (
 	"context"
 )
 
+const categoryExistsByName = `-- name: CategoryExistsByName :one
+SELECT EXISTS (
+    SELECT 1 FROM categories
+    WHERE name = $1
+)
+`
+
+func (q *Queries) CategoryExistsByName(ctx context.Context, name string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, categoryExistsByName, name)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createCategory = `-- name: CreateCategory :one
 INSERT INTO categories (name)
 VALUES ($1)
-RETURNING id, name, deleted_at, created_at, updated_at
+RETURNING id, name
 `
 
 func (q *Queries) CreateCategory(ctx context.Context, name string) (Category, error) {
 	row := q.db.QueryRowContext(ctx, createCategory, name)
 	var i Category
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
-const deleteCategory = `-- name: DeleteCategory :exec
-UPDATE categories
-SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-`
-
-func (q *Queries) DeleteCategory(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteCategory, id)
-	return err
-}
-
-const getCategory = `-- name: GetCategory :one
-SELECT id, name, deleted_at, created_at, updated_at FROM categories
+const getCategoryByID = `-- name: GetCategoryByID :one
+SELECT id, name FROM categories
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetCategory(ctx context.Context, id int32) (Category, error) {
-	row := q.db.QueryRowContext(ctx, getCategory, id)
+func (q *Queries) GetCategoryByID(ctx context.Context, id int32) (Category, error) {
+	row := q.db.QueryRowContext(ctx, getCategoryByID, id)
 	var i Category
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
@@ -68,9 +59,8 @@ func (q *Queries) HardDeleteCategory(ctx context.Context, id int32) error {
 }
 
 const listCategories = `-- name: ListCategories :many
-SELECT id, name, deleted_at, created_at, updated_at FROM categories
-WHERE deleted_at IS NULL
-ORDER BY created_at DESC
+SELECT id, name FROM categories
+ORDER BY id
 LIMIT $1 OFFSET $2
 `
 
@@ -88,13 +78,7 @@ func (q *Queries) ListCategories(ctx context.Context, arg ListCategoriesParams) 
 	items := []Category{}
 	for rows.Next() {
 		var i Category
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.DeletedAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -108,22 +92,11 @@ func (q *Queries) ListCategories(ctx context.Context, arg ListCategoriesParams) 
 	return items, nil
 }
 
-const restoreCategory = `-- name: RestoreCategory :exec
-UPDATE categories
-SET deleted_at = NULL, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NOT NULL
-`
-
-func (q *Queries) RestoreCategory(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, restoreCategory, id)
-	return err
-}
-
 const updateCategory = `-- name: UpdateCategory :one
 UPDATE categories
-SET name = $2, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, deleted_at, created_at, updated_at
+SET name = $2
+WHERE id = $1
+RETURNING id, name
 `
 
 type UpdateCategoryParams struct {
@@ -134,12 +107,6 @@ type UpdateCategoryParams struct {
 func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error) {
 	row := q.db.QueryRowContext(ctx, updateCategory, arg.ID, arg.Name)
 	var i Category
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.DeletedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }

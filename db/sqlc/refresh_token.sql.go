@@ -13,12 +13,8 @@ import (
 )
 
 const createRefreshToken = `-- name: CreateRefreshToken :one
-INSERT INTO refresh_tokens (
-    user_id, issued_at, expires_at
-)
-VALUES (
-           $1, $2, $3
-       )
+INSERT INTO refresh_tokens (user_id, issued_at, expires_at)
+VALUES ($1, $2, $3)
 RETURNING id, user_id, issued_at, expires_at, deleted_at
 `
 
@@ -41,24 +37,14 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 	return i, err
 }
 
-const deleteRefreshToken = `-- name: DeleteRefreshToken :exec
-DELETE FROM refresh_tokens
-WHERE id = $1
-`
-
-func (q *Queries) DeleteRefreshToken(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteRefreshToken, id)
-	return err
-}
-
-const getRefreshToken = `-- name: GetRefreshToken :one
+const getRefreshTokenByID = `-- name: GetRefreshTokenByID :one
 SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
-WHERE id = $1
+WHERE id = $1 AND deleted_at IS NULL
 LIMIT 1
 `
 
-func (q *Queries) GetRefreshToken(ctx context.Context, id uuid.UUID) (RefreshToken, error) {
-	row := q.db.QueryRowContext(ctx, getRefreshToken, id)
+func (q *Queries) GetRefreshTokenByID(ctx context.Context, id uuid.UUID) (RefreshToken, error) {
+	row := q.db.QueryRowContext(ctx, getRefreshTokenByID, id)
 	var i RefreshToken
 	err := row.Scan(
 		&i.ID,
@@ -68,6 +54,16 @@ func (q *Queries) GetRefreshToken(ctx context.Context, id uuid.UUID) (RefreshTok
 		&i.DeletedAt,
 	)
 	return i, err
+}
+
+const hardDeleteRefreshToken = `-- name: HardDeleteRefreshToken :exec
+DELETE FROM refresh_tokens
+WHERE id = $1
+`
+
+func (q *Queries) HardDeleteRefreshToken(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, hardDeleteRefreshToken, id)
+	return err
 }
 
 const listRefreshTokens = `-- name: ListRefreshTokens :many
@@ -112,7 +108,7 @@ func (q *Queries) ListRefreshTokens(ctx context.Context, arg ListRefreshTokensPa
 
 const listRefreshTokensByUser = `-- name: ListRefreshTokensByUser :many
 SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
-WHERE user_id = $1
+WHERE user_id = $1 AND deleted_at IS NULL
 ORDER BY issued_at DESC
 LIMIT $2 OFFSET $3
 `
@@ -150,6 +146,28 @@ func (q *Queries) ListRefreshTokensByUser(ctx context.Context, arg ListRefreshTo
 		return nil, err
 	}
 	return items, nil
+}
+
+const restoreRefreshToken = `-- name: RestoreRefreshToken :exec
+UPDATE refresh_tokens
+SET deleted_at = NULL
+WHERE id = $1 AND deleted_at IS NOT NULL
+`
+
+func (q *Queries) RestoreRefreshToken(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, restoreRefreshToken, id)
+	return err
+}
+
+const softDeleteRefreshToken = `-- name: SoftDeleteRefreshToken :exec
+UPDATE refresh_tokens
+SET deleted_at = NOW()
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) SoftDeleteRefreshToken(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, softDeleteRefreshToken, id)
+	return err
 }
 
 const updateRefreshToken = `-- name: UpdateRefreshToken :one

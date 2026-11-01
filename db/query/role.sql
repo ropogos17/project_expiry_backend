@@ -3,31 +3,26 @@ INSERT INTO roles (name)
 VALUES ($1)
 RETURNING *;
 
--- name: GetRole :one
+-- name: GetRoleByID :one
 SELECT * FROM roles
 WHERE id = $1 LIMIT 1;
 
+-- name: RoleExistsByName :one
+SELECT EXISTS (
+    SELECT 1 FROM roles
+    WHERE name = $1
+);
+
 -- name: ListRoles :many
 SELECT * FROM roles
-WHERE deleted_at IS NULL
-ORDER BY created_at DESC
+ORDER BY id
 LIMIT $1 OFFSET $2;
 
 -- name: UpdateRole :one
 UPDATE roles
-SET name = $2, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL
+SET name = $2
+WHERE id = $1
 RETURNING *;
-
--- name: DeleteRole :exec
-UPDATE roles
-SET deleted_at = NOW(), updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NULL;
-
--- name: RestoreRole :exec
-UPDATE roles
-SET deleted_at = NULL, updated_at = NOW()
-WHERE id = $1 AND deleted_at IS NOT NULL;
 
 -- name: HardDeleteRole :exec
 DELETE FROM roles

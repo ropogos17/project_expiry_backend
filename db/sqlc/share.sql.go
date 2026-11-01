@@ -14,9 +14,7 @@ const createShare = `-- name: CreateShare :one
 INSERT INTO shares (
     source_user_id, storage_id, target_user_id, can_share
 )
-VALUES (
-           $1, $2, $3, $4
-       )
+VALUES ($1, $2, $3, $4)
 RETURNING id, source_user_id, storage_id, target_user_id, can_share, shared_at
 `
 
@@ -46,23 +44,13 @@ func (q *Queries) CreateShare(ctx context.Context, arg CreateShareParams) (Share
 	return i, err
 }
 
-const deleteShare = `-- name: DeleteShare :exec
-DELETE FROM shares
-WHERE id = $1
-`
-
-func (q *Queries) DeleteShare(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteShare, id)
-	return err
-}
-
-const getShare = `-- name: GetShare :one
+const getShareByID = `-- name: GetShareByID :one
 SELECT id, source_user_id, storage_id, target_user_id, can_share, shared_at FROM shares
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetShare(ctx context.Context, id int32) (Share, error) {
-	row := q.db.QueryRowContext(ctx, getShare, id)
+func (q *Queries) GetShareByID(ctx context.Context, id int32) (Share, error) {
+	row := q.db.QueryRowContext(ctx, getShareByID, id)
 	var i Share
 	err := row.Scan(
 		&i.ID,
@@ -75,18 +63,18 @@ func (q *Queries) GetShare(ctx context.Context, id int32) (Share, error) {
 	return i, err
 }
 
-const getShareByStorageAndOwner = `-- name: GetShareByStorageAndOwner :one
+const getShareByStorageAndTargetUser = `-- name: GetShareByStorageAndTargetUser :one
 SELECT id, source_user_id, storage_id, target_user_id, can_share, shared_at FROM shares
 WHERE storage_id = $1 AND target_user_id = $2 LIMIT 1
 `
 
-type GetShareByStorageAndOwnerParams struct {
+type GetShareByStorageAndTargetUserParams struct {
 	StorageID    int32 `json:"storage_id"`
 	TargetUserID int32 `json:"target_user_id"`
 }
 
-func (q *Queries) GetShareByStorageAndOwner(ctx context.Context, arg GetShareByStorageAndOwnerParams) (Share, error) {
-	row := q.db.QueryRowContext(ctx, getShareByStorageAndOwner, arg.StorageID, arg.TargetUserID)
+func (q *Queries) GetShareByStorageAndTargetUser(ctx context.Context, arg GetShareByStorageAndTargetUserParams) (Share, error) {
+	row := q.db.QueryRowContext(ctx, getShareByStorageAndTargetUser, arg.StorageID, arg.TargetUserID)
 	var i Share
 	err := row.Scan(
 		&i.ID,
@@ -97,6 +85,16 @@ func (q *Queries) GetShareByStorageAndOwner(ctx context.Context, arg GetShareByS
 		&i.SharedAt,
 	)
 	return i, err
+}
+
+const hardDeleteShare = `-- name: HardDeleteShare :exec
+DELETE FROM shares
+WHERE id = $1
+`
+
+func (q *Queries) HardDeleteShare(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, hardDeleteShare, id)
+	return err
 }
 
 const listShares = `-- name: ListShares :many
@@ -112,6 +110,49 @@ type ListSharesParams struct {
 
 func (q *Queries) ListShares(ctx context.Context, arg ListSharesParams) ([]Share, error) {
 	rows, err := q.db.QueryContext(ctx, listShares, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Share{}
+	for rows.Next() {
+		var i Share
+		if err := rows.Scan(
+			&i.ID,
+			&i.SourceUserID,
+			&i.StorageID,
+			&i.TargetUserID,
+			&i.CanShare,
+			&i.SharedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSharesByUser = `-- name: ListSharesByUser :many
+SELECT id, source_user_id, storage_id, target_user_id, can_share, shared_at FROM shares
+WHERE source_user_id = $3
+ORDER BY id
+LIMIT $1 OFFSET $2
+`
+
+type ListSharesByUserParams struct {
+	Limit        int32 `json:"limit"`
+	Offset       int32 `json:"offset"`
+	SourceUserID int32 `json:"source_user_id"`
+}
+
+func (q *Queries) ListSharesByUser(ctx context.Context, arg ListSharesByUserParams) ([]Share, error) {
+	rows, err := q.db.QueryContext(ctx, listSharesByUser, arg.Limit, arg.Offset, arg.SourceUserID)
 	if err != nil {
 		return nil, err
 	}

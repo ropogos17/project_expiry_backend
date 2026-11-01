@@ -7,15 +7,14 @@ INSERT INTO users (
     has_avatar,
     password,
     role_id,
-    is_superuser,
-    status_id
+    is_superuser
 )
 VALUES (
-           $1, $2, $3, $4, $5, $6, $7, $8, $9
+           $1, $2, $3, $4, $5, $6, $7, $8
        )
 RETURNING *;
 
--- name: GetUser :one
+-- name: GetUserByID :one
 SELECT * FROM users
 WHERE id = $1 LIMIT 1;
 
@@ -50,13 +49,11 @@ UPDATE users SET
                  password_changed_at = $15,
                  role_id = $16,
                  is_superuser = $17,
-                 status_id = $18,
-                 deleted_at = $19,
-                 updated_at = $20
+                 updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
--- name: DeleteUser :exec
+-- name: SoftDeleteUser :exec
 UPDATE users
 SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL;

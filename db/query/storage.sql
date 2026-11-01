@@ -1,13 +1,11 @@
 -- name: CreateStorage :one
 INSERT INTO storages (
-    name, description, location, shelves, has_image, owner
+    name, description, location, shelf_count, has_image, owner
 )
-VALUES (
-           $1, $2, $3, $4, $5, $6
-       )
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
--- name: GetStorage :one
+-- name: GetStorageByID :one
 SELECT * FROM storages
 WHERE id = $1 LIMIT 1;
 
@@ -19,7 +17,7 @@ LIMIT $1 OFFSET $2;
 -- name: ListStoragesByOwner :many
 SELECT * FROM storages
 WHERE owner = $3 AND deleted_at IS NULL
-ORDER BY created_at DESC
+ORDER BY name
 LIMIT $1 OFFSET $2;
 
 -- name: UpdateStorage :one
@@ -28,7 +26,7 @@ SET
     name = $2,
     description = $3,
     location = $4,
-    shelves = $5,
+    shelf_count = $5,
     has_image = $6,
     owner = $7,
     updated_at = NOW()

@@ -8,24 +8,21 @@ package db
 import (
 	"context"
 	"database/sql"
-	"time"
+
+	"github.com/sqlc-dev/pqtype"
 )
 
 const createLog = `-- name: CreateLog :one
-INSERT INTO logs (
-    action_type_id, message, data, user_id
-)
-VALUES (
-           $1, $2, $3, $4
-       )
+INSERT INTO logs (action_type_id, message, data, user_id)
+VALUES ($1, $2, $3, $4)
 RETURNING id, created_at, action_type_id, message, data, user_id
 `
 
 type CreateLogParams struct {
-	ActionTypeID int32          `json:"action_type_id"`
-	Message      sql.NullString `json:"message"`
-	Data         sql.NullString `json:"data"`
-	UserID       int32          `json:"user_id"`
+	ActionTypeID int32                 `json:"action_type_id"`
+	Message      sql.NullString        `json:"message"`
+	Data         pqtype.NullRawMessage `json:"data"`
+	UserID       int32                 `json:"user_id"`
 }
 
 func (q *Queries) CreateLog(ctx context.Context, arg CreateLogParams) (Log, error) {
@@ -47,23 +44,13 @@ func (q *Queries) CreateLog(ctx context.Context, arg CreateLogParams) (Log, erro
 	return i, err
 }
 
-const deleteLog = `-- name: DeleteLog :exec
-DELETE FROM logs
-WHERE id = $1
-`
-
-func (q *Queries) DeleteLog(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, deleteLog, id)
-	return err
-}
-
-const getLog = `-- name: GetLog :one
+const getLogByID = `-- name: GetLogByID :one
 SELECT id, created_at, action_type_id, message, data, user_id FROM logs
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetLog(ctx context.Context, id int32) (Log, error) {
-	row := q.db.QueryRowContext(ctx, getLog, id)
+func (q *Queries) GetLogByID(ctx context.Context, id int32) (Log, error) {
+	row := q.db.QueryRowContext(ctx, getLogByID, id)
 	var i Log
 	err := row.Scan(
 		&i.ID,
@@ -74,6 +61,16 @@ func (q *Queries) GetLog(ctx context.Context, id int32) (Log, error) {
 		&i.UserID,
 	)
 	return i, err
+}
+
+const hardDeleteLog = `-- name: HardDeleteLog :exec
+DELETE FROM logs
+WHERE id = $1
+`
+
+func (q *Queries) HardDeleteLog(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, hardDeleteLog, id)
+	return err
 }
 
 const listLogs = `-- name: ListLogs :many
@@ -120,32 +117,26 @@ func (q *Queries) ListLogs(ctx context.Context, arg ListLogsParams) ([]Log, erro
 const updateLog = `-- name: UpdateLog :one
 UPDATE logs
 SET
-    created_at = $2,
-    action_type_id = $3,
-    message = $4,
-    data = $5,
-    user_id = $6
+    action_type_id = $2,
+    message = $3,
+    data = $4
 WHERE id = $1
 RETURNING id, created_at, action_type_id, message, data, user_id
 `
 
 type UpdateLogParams struct {
-	ID           int32          `json:"id"`
-	CreatedAt    time.Time      `json:"created_at"`
-	ActionTypeID int32          `json:"action_type_id"`
-	Message      sql.NullString `json:"message"`
-	Data         sql.NullString `json:"data"`
-	UserID       int32          `json:"user_id"`
+	ID           int32                 `json:"id"`
+	ActionTypeID int32                 `json:"action_type_id"`
+	Message      sql.NullString        `json:"message"`
+	Data         pqtype.NullRawMessage `json:"data"`
 }
 
 func (q *Queries) UpdateLog(ctx context.Context, arg UpdateLogParams) (Log, error) {
 	row := q.db.QueryRowContext(ctx, updateLog,
 		arg.ID,
-		arg.CreatedAt,
 		arg.ActionTypeID,
 		arg.Message,
 		arg.Data,
-		arg.UserID,
 	)
 	var i Log
 	err := row.Scan(

@@ -26,9 +26,9 @@ func TestCreateRole(t *testing.T) {
 	createRandomRole(t)
 }
 
-func TestGetRole(t *testing.T) {
+func TestGetRoleByID(t *testing.T) {
 	role1 := createRandomRole(t)
-	role2, err := testQueries.GetRole(context.Background(), role1.ID)
+	role2, err := testQueries.GetRoleByID(context.Background(), role1.ID)
 
 	require.NoError(t, err)
 	require.NotEmpty(t, role2)
@@ -50,12 +50,12 @@ func TestUpdateRole(t *testing.T) {
 	require.Equal(t, arg.Name, role2.Name)
 }
 
-func TestDeleteRole(t *testing.T) {
+func TestHardDeleteRole(t *testing.T) {
 	role1 := createRandomRole(t)
-	err := testQueries.DeleteRole(context.Background(), role1.ID)
+	err := testQueries.HardDeleteRole(context.Background(), role1.ID)
 	require.NoError(t, err)
 
-	role2, err := testQueries.GetRole(context.Background(), role1.ID)
+	role2, err := testQueries.GetRoleByID(context.Background(), role1.ID)
 	require.Error(t, err)
 	require.EqualError(t, err, sql.ErrNoRows.Error())
 	require.Empty(t, role2)
@@ -78,6 +78,28 @@ func TestListRoles(t *testing.T) {
 	for _, role := range roles {
 		require.NotEmpty(t, role)
 	}
+}
+
+func TestRoleExistsByName(t *testing.T) {
+	// exists
+	role := createRandomRole(t)
+
+	exists, err := testQueries.RoleExistsByName(
+		context.Background(),
+		role.Name,
+	)
+
+	require.NoError(t, err)
+	require.True(t, exists)
+
+	// doesn't exist
+	exists, err = testQueries.RoleExistsByName(
+		context.Background(),
+		"nonexistent-role",
+	)
+
+	require.NoError(t, err)
+	require.False(t, exists)
 }
 
 // Utils

@@ -9,14 +9,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type ActionType struct {
-	ID        int32        `json:"id"`
-	Name      string       `json:"name"`
-	DeletedAt sql.NullTime `json:"deleted_at"`
-	CreatedAt time.Time    `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
 }
 
 type Announcement struct {
@@ -24,61 +22,40 @@ type Announcement struct {
 	Name         string         `json:"name"`
 	Description  sql.NullString `json:"description"`
 	ExternalLink sql.NullString `json:"external_link"`
-	HasRead      bool           `json:"has_read"`
-	DeletedAt    sql.NullTime   `json:"deleted_at"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
+	CreatedBy    int32          `json:"created_by"`
+	DeletedAt    sql.NullTime   `json:"deleted_at"`
 }
 
 type Category struct {
-	ID        int32        `json:"id"`
-	Name      string       `json:"name"`
-	DeletedAt sql.NullTime `json:"deleted_at"`
-	CreatedAt time.Time    `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
 }
 
 type Item struct {
-	ID           int32          `json:"id"`
-	Name         string         `json:"name"`
-	CategoryID   int32          `json:"category_id"`
-	Description  sql.NullString `json:"description"`
-	Quantity     sql.NullString `json:"quantity"`
-	HasImage     bool           `json:"has_image"`
-	IsDeleted    bool           `json:"is_deleted"`
-	StoredAt     time.Time      `json:"stored_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	ExpiresAt    time.Time      `json:"expires_at"`
-	StorageID    int32          `json:"storage_id"`
-	Shelf        sql.NullInt32  `json:"shelf"`
-	LastModified int32          `json:"last_modified"`
-}
-
-type Language struct {
-	ID        int32        `json:"id"`
-	En        string       `json:"en"`
-	Hu        string       `json:"hu"`
-	Ro        string       `json:"ro"`
-	Es        string       `json:"es"`
-	Zh        string       `json:"zh"`
-	Fr        string       `json:"fr"`
-	De        string       `json:"de"`
-	Pt        string       `json:"pt"`
-	Ru        string       `json:"ru"`
-	Ua        string       `json:"ua"`
-	Ar        string       `json:"ar"`
-	DeletedAt sql.NullTime `json:"deleted_at"`
-	CreatedAt time.Time    `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
+	ID             int32          `json:"id"`
+	Name           string         `json:"name"`
+	CategoryID     int32          `json:"category_id"`
+	Description    sql.NullString `json:"description"`
+	Quantity       sql.NullString `json:"quantity"`
+	HasImage       bool           `json:"has_image"`
+	StoredAt       time.Time      `json:"stored_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+	ExpiresAt      time.Time      `json:"expires_at"`
+	StorageID      int32          `json:"storage_id"`
+	Shelf          int32          `json:"shelf"`
+	LastModifiedBy int32          `json:"last_modified_by"`
+	DeletedAt      sql.NullTime   `json:"deleted_at"`
 }
 
 type Log struct {
-	ID           int32          `json:"id"`
-	CreatedAt    time.Time      `json:"created_at"`
-	ActionTypeID int32          `json:"action_type_id"`
-	Message      sql.NullString `json:"message"`
-	Data         sql.NullString `json:"data"`
-	UserID       int32          `json:"user_id"`
+	ID           int32                 `json:"id"`
+	CreatedAt    time.Time             `json:"created_at"`
+	ActionTypeID int32                 `json:"action_type_id"`
+	Message      sql.NullString        `json:"message"`
+	Data         pqtype.NullRawMessage `json:"data"`
+	UserID       int32                 `json:"user_id"`
 }
 
 type RefreshToken struct {
@@ -90,11 +67,8 @@ type RefreshToken struct {
 }
 
 type Role struct {
-	ID        int32        `json:"id"`
-	Name      string       `json:"name"`
-	DeletedAt sql.NullTime `json:"deleted_at"`
-	CreatedAt time.Time    `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
+	ID   int32  `json:"id"`
+	Name string `json:"name"`
 }
 
 type Share struct {
@@ -106,24 +80,12 @@ type Share struct {
 	SharedAt     time.Time `json:"shared_at"`
 }
 
-type ShoppingListItem struct {
-	ID           int32          `json:"id"`
-	Name         string         `json:"name"`
-	Description  sql.NullString `json:"description"`
-	Quantity     sql.NullString `json:"quantity"`
-	IsChecked    bool           `json:"is_checked"`
-	IsDeleted    bool           `json:"is_deleted"`
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
-	LastModified int32          `json:"last_modified"`
-}
-
 type Storage struct {
 	ID          int32          `json:"id"`
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
 	Location    sql.NullString `json:"location"`
-	Shelves     sql.NullInt32  `json:"shelves"`
+	ShelfCount  int32          `json:"shelf_count"`
 	HasImage    bool           `json:"has_image"`
 	Owner       int32          `json:"owner"`
 	DeletedAt   sql.NullTime   `json:"deleted_at"`
@@ -136,7 +98,7 @@ type User struct {
 	Name              string         `json:"name"`
 	Username          string         `json:"username"`
 	Email             string         `json:"email"`
-	Phone             string         `json:"phone"`
+	Phone             sql.NullString `json:"phone"`
 	HasAvatar         bool           `json:"has_avatar"`
 	Password          string         `json:"password"`
 	EmailVerified     bool           `json:"email_verified"`
@@ -149,16 +111,7 @@ type User struct {
 	PasswordChangedAt sql.NullTime   `json:"password_changed_at"`
 	RoleID            int32          `json:"role_id"`
 	IsSuperuser       bool           `json:"is_superuser"`
-	StatusID          int32          `json:"status_id"`
 	DeletedAt         sql.NullTime   `json:"deleted_at"`
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
-}
-
-type UserStatus struct {
-	ID        int32        `json:"id"`
-	Name      string       `json:"name"`
-	DeletedAt sql.NullTime `json:"deleted_at"`
-	CreatedAt time.Time    `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
 }

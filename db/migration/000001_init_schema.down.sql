@@ -1,32 +1,42 @@
--- Drop foreign key constraints (optional if using CASCADE in DROP TABLE)
-ALTER TABLE "logs" DROP CONSTRAINT IF EXISTS "logs_user_id_fkey";
-ALTER TABLE "logs" DROP CONSTRAINT IF EXISTS "logs_action_type_fkey";
+-- ============================================================
+-- 000001_init_schema.down.sql
+-- Drop in reverse dependency order
+-- ============================================================
 
-ALTER TABLE "shares" DROP CONSTRAINT IF EXISTS "shares_target_user_id_fkey";
-ALTER TABLE "shares" DROP CONSTRAINT IF EXISTS "shares_storage_id_fkey";
-ALTER TABLE "shares" DROP CONSTRAINT IF EXISTS "shares_source_user_id_fkey";
+DROP INDEX IF EXISTS idx_logs_created_at;
+DROP INDEX IF EXISTS idx_logs_action_type_id;
+DROP INDEX IF EXISTS idx_logs_user_id;
 
-ALTER TABLE "shopping_list_items" DROP CONSTRAINT IF EXISTS "shopping_list_items_last_modified_fkey";
+DROP INDEX IF EXISTS idx_announcements_deleted_at;
+DROP INDEX IF EXISTS idx_announcements_created_by;
 
-ALTER TABLE "storages" DROP CONSTRAINT IF EXISTS "storages_owner_fkey";
+DROP INDEX IF EXISTS idx_shares_storage_id;
+DROP INDEX IF EXISTS idx_shares_target_user_id;
+DROP INDEX IF EXISTS idx_shares_source_user_id;
 
-ALTER TABLE "items" DROP CONSTRAINT IF EXISTS "items_last_modified_fkey";
-ALTER TABLE "items" DROP CONSTRAINT IF EXISTS "items_storage_id_fkey";
-ALTER TABLE "items" DROP CONSTRAINT IF EXISTS "items_category_id_fkey";
+DROP INDEX IF EXISTS idx_items_deleted_at;
+DROP INDEX IF EXISTS idx_items_expires_at;
+DROP INDEX IF EXISTS idx_items_category_id;
+DROP INDEX IF EXISTS idx_items_storage_id;
 
-ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "users_status_id_fkey";
-ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "users_role_id_fkey";
+DROP INDEX IF EXISTS idx_storages_deleted_at;
+DROP INDEX IF EXISTS idx_storages_owner;
 
--- Drop tables in reverse order of dependencies
-DROP TABLE IF EXISTS "logs";
-DROP TABLE IF EXISTS "action_types";
-DROP TABLE IF EXISTS "languages";
-DROP TABLE IF EXISTS "shares";
-DROP TABLE IF EXISTS "shopping_list_items";
-DROP TABLE IF EXISTS "announcements";
-DROP TABLE IF EXISTS "storages";
-DROP TABLE IF EXISTS "categories";
-DROP TABLE IF EXISTS "items";
-DROP TABLE IF EXISTS "user_statuses";
-DROP TABLE IF EXISTS "roles";
-DROP TABLE IF EXISTS "users";
+DROP INDEX IF EXISTS idx_refresh_tokens_expires_at;
+DROP INDEX IF EXISTS idx_refresh_tokens_user_id;
+
+DROP INDEX IF EXISTS idx_users_deleted_at;
+DROP INDEX IF EXISTS idx_users_status_id;
+DROP INDEX IF EXISTS idx_users_role_id;
+
+DROP TABLE IF EXISTS logs;
+DROP TABLE IF EXISTS announcements;
+DROP TABLE IF EXISTS shares;
+DROP TABLE IF EXISTS items;
+DROP TABLE IF EXISTS storages;
+DROP TABLE IF EXISTS refresh_tokens;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS action_types;
+DROP TABLE IF EXISTS user_statuses;
+DROP TABLE IF EXISTS roles;
