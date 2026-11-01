@@ -33,6 +33,7 @@ vendor/
 .env
 .env.*
 *.env
+app.env
 
 # Node modules (if using JS/TS in frontend within repo)
 node_modules/

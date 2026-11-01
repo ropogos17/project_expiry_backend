@@ -8,3 +8,6 @@ tmp/
 *.exe
 myapp
 .env
+.git
+.github
+app.env
