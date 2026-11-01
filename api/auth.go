@@ -17,29 +17,20 @@ type createUserRequest struct {
 	Name     string `json:"name" binding:"required"`
 	Username string `json:"username" binding:"required,alphanum"`
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Password string `json:"password" binding:"required,min=15,max=128"`
 }
 
 type userResponse struct {
-	ID                int32      `json:"id"`
-	Name              string     `json:"name"`
-	Username          string     `json:"username"`
-	Email             string     `json:"email"`
-	Phone             string     `json:"phone"`
-	HasAvatar         bool       `json:"has_avatar"`
-	EmailVerified     bool       `json:"email_verified"`
-	PhoneVerified     bool       `json:"phone_verified"`
-	TwoFactorEnabled  bool       `json:"two_factor_enabled"`
-	LastLogin         *time.Time `json:"last_login"`
-	LoginAttempts     int32      `json:"login_attempts"`
-	LockedUntil       *time.Time `json:"locked_until"`
-	PasswordChangedAt *time.Time `json:"password_changed_at"`
-	RoleID            int32      `json:"role_id"`
-	IsSuperuser       bool       `json:"is_superuser"`
-	StatusID          int32      `json:"status_id"`
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
-	DeletedAt         *time.Time `json:"deleted_at"`
+	ID               int32      `json:"id"`
+	Name             string     `json:"name"`
+	Username         string     `json:"username"`
+	Email            string     `json:"email"`
+	Phone            *string    `json:"phone"`
+	HasAvatar        bool       `json:"has_avatar"`
+	EmailVerified    bool       `json:"email_verified"`
+	PhoneVerified    bool       `json:"phone_verified"`
+	TwoFactorEnabled bool       `json:"two_factor_enabled"`
+	LastLogin        *time.Time `json:"last_login"`
 }
 
 func newUserResponse(user db.User) userResponse {
@@ -48,41 +39,22 @@ func newUserResponse(user db.User) userResponse {
 		lastLogin = &user.LastLogin.Time
 	}
 
-	var lockedUntil *time.Time
-	if user.LockedUntil.Valid {
-		lockedUntil = &user.LockedUntil.Time
-	}
-
-	var deletedAt *time.Time
-	if user.DeletedAt.Valid {
-		deletedAt = &user.DeletedAt.Time
-	}
-
-	var passwordChangedAt *time.Time
-	if user.PasswordChangedAt.Valid {
-		passwordChangedAt = &user.PasswordChangedAt.Time
+	var phone *string
+	if user.Phone.Valid {
+		phone = &user.Phone.String
 	}
 
 	return userResponse{
-		ID:                user.ID,
-		Name:              user.Name,
-		Username:          user.Username,
-		Email:             user.Email,
-		Phone:             user.Phone,
-		HasAvatar:         user.HasAvatar,
-		EmailVerified:     user.EmailVerified,
-		PhoneVerified:     user.PhoneVerified,
-		TwoFactorEnabled:  user.TwoFactorEnabled,
-		LastLogin:         lastLogin,
-		LoginAttempts:     user.LoginAttempts,
-		LockedUntil:       lockedUntil,
-		PasswordChangedAt: passwordChangedAt,
-		RoleID:            user.RoleID,
-		IsSuperuser:       user.IsSuperuser,
-		StatusID:          user.StatusID,
-		CreatedAt:         user.CreatedAt,
-		UpdatedAt:         user.UpdatedAt,
-		DeletedAt:         deletedAt,
+		ID:               user.ID,
+		Name:             user.Name,
+		Username:         user.Username,
+		Email:            user.Email,
+		Phone:            phone,
+		HasAvatar:        user.HasAvatar,
+		EmailVerified:    user.EmailVerified,
+		PhoneVerified:    user.PhoneVerified,
+		TwoFactorEnabled: user.TwoFactorEnabled,
+		LastLogin:        lastLogin,
 	}
 }
 
@@ -103,12 +75,11 @@ func (server *Server) registerUser(ctx *gin.Context) {
 		Name:        req.Name,
 		Username:    req.Username,
 		Email:       req.Email,
-		Phone:       "",
+		Phone:       sql.NullString{},
 		HasAvatar:   false,
 		Password:    hashedPassword,
 		RoleID:      1, // TODO: change this
 		IsSuperuser: false,
-		StatusID:    1,
 	}
 
 	user, err := server.store.CreateUser(ctx, arg)
@@ -123,7 +94,7 @@ func (server *Server) registerUser(ctx *gin.Context) {
 
 type loginUserRequest struct {
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Password string `json:"password" binding:"required,max=128"`
 }
 
 type loginUserResponse struct {
@@ -141,7 +112,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	user, err := server.store.GetUserByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			ctx.JSON(http.StatusNotFound, errorResponse(errors.New("invalid email")))
+			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid email or password")))
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -150,7 +121,11 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	err = utils.CheckPassword(req.Password, user.Password)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid password")))
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid email or password")))
+		return
+	}
+	if user.DeletedAt.Valid || (user.LockedUntil.Valid && time.Now().Before(user.LockedUntil.Time)) {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("account is suspended")))
 		return
 	}
 
@@ -183,7 +158,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 type changePasswordRequest struct {
 	OldPassword string `json:"old_password" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=6"`
+	NewPassword string `json:"new_password" binding:"required,min=15,max=128"`
 }
 
 func (server *Server) changePassword(ctx *gin.Context) {
@@ -217,45 +192,29 @@ func (server *Server) changePassword(ctx *gin.Context) {
 		return
 	}
 
-	now := time.Now()
-	arg := db.UpdateUserParams{
-		ID:                user.ID,
-		Name:              user.Name,
-		Username:          user.Username,
-		Email:             user.Email,
-		Phone:             user.Phone,
-		HasAvatar:         user.HasAvatar,
-		Password:          hashedPassword,
-		EmailVerified:     user.EmailVerified,
-		PhoneVerified:     user.PhoneVerified,
-		TwoFactorEnabled:  user.TwoFactorEnabled,
-		TwoFactorSecret:   user.TwoFactorSecret,
-		LastLogin:         user.LastLogin,
-		LoginAttempts:     user.LoginAttempts,
-		LockedUntil:       user.LockedUntil,
-		PasswordChangedAt: sql.NullTime{Valid: true, Time: now},
-		RoleID:            user.RoleID,
-		IsSuperuser:       user.IsSuperuser,
-		StatusID:          user.StatusID,
-		DeletedAt:         user.DeletedAt,
-		UpdatedAt:         now,
-	}
+	// update password, delete all refresh tokens
+	err = server.store.ExecTx(ctx, func(q *db.Queries) error {
+		// save new pwd
+		err := q.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
+			ID:       user.ID,
+			Password: hashedPassword,
+		})
+		if err != nil {
+			return err
+		}
 
-	_, err = server.store.UpdateUser(ctx, arg)
+		return q.HardDeleteRefreshTokensByUser(ctx, user.ID)
+	})
+
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
 	ctx.JSON(http.StatusOK, gin.H{"message": "password changed successfully"})
 }
 
 type refreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
-}
-
-type refreshTokenResponse struct {
-	AccessToken string `json:"access_token"`
 }
 
 func (server *Server) refreshToken(ctx *gin.Context) {
@@ -271,70 +230,88 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 		return
 	}
 
-	refreshToken, err := server.store.GetRefreshToken(ctx, tokenID)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
-		return
-	}
+	var user db.User
+	var newRefreshToken db.RefreshToken
+	var accessToken string
+	var errRefreshTokenExpired = errors.New("refresh token expired")
 
-	if time.Now().After(refreshToken.ExpiresAt) {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("refresh token expired")))
-		return
-	}
+	err = server.store.ExecTx(ctx, func(q *db.Queries) error {
+		oldToken, err := q.GetRefreshTokenByIDForUpdate(ctx, tokenID)
+		if err != nil {
+			return err
+		}
+		if !time.Now().Before(oldToken.ExpiresAt) {
+			return errRefreshTokenExpired
+		}
 
-	user, err := server.store.GetUser(ctx, refreshToken.UserID)
+		user, err = q.GetUserByID(ctx, oldToken.UserID)
+		if err != nil {
+			return err
+		}
+
+		now := time.Now()
+		if user.DeletedAt.Valid || (user.LockedUntil.Valid && now.Before(user.LockedUntil.Time)) {
+			return errors.New("account is suspended")
+		}
+
+		accessToken, err = server.tokenMaker.CreateToken(
+			user.Username,
+			server.config.AccessTokenDuration,
+		)
+		if err != nil {
+			return err
+		}
+
+		if err := q.HardDeleteRefreshToken(ctx, oldToken.ID); err != nil {
+			return err
+		}
+
+		now = time.Now()
+		newRefreshToken, err = q.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
+			UserID:    oldToken.UserID,
+			IssuedAt:  now,
+			ExpiresAt: now.Add(server.config.RefreshTokenDuration),
+		})
+		return err
+	})
+
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			ctx.JSON(http.StatusNotFound, errorResponse(errors.New("invalid refresh token")))
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, errRefreshTokenExpired) {
+			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid or expired refresh token")))
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	accessToken, err := server.tokenMaker.CreateToken(
-		user.Username,
-		server.config.AccessTokenDuration,
-	)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	rsp := refreshTokenResponse{
-		AccessToken: accessToken,
+	rsp := loginUserResponse{
+		AccessToken:  accessToken,
+		RefreshToken: newRefreshToken.ID.String(),
 	}
 	ctx.JSON(http.StatusOK, rsp)
 }
 
+type logoutUserRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
 func (server *Server) logoutUser(ctx *gin.Context) {
-
-	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
-	user, err := server.store.GetUserByUsername(ctx, authPayload.Username)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+	var req logoutUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	refreshTokens, err := server.store.ListRefreshTokensByUser(ctx, db.ListRefreshTokensByUserParams{
-		UserID: user.ID,
-		Limit:  1,
-		Offset: 1,
-	})
+	tokenID, err := uuid.Parse(req.RefreshToken)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			ctx.JSON(http.StatusNotFound, errorResponse(errors.New("invalid refresh token")))
-			return
-		}
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	err = server.store.DeleteRefreshToken(ctx, refreshTokens[0].ID)
+	err = server.store.HardDeleteRefreshToken(ctx, tokenID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "logout successfully"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "logout successful"})
 }

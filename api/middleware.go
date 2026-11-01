@@ -6,6 +6,7 @@ import (
 	"net/http"
 	db "project_expiry_backend/db/sqlc"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"project_expiry_backend/token"
@@ -29,7 +30,7 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 		}
 
 		fields := strings.Fields(authorizationHeader)
-		if len(fields) < 2 {
+		if len(fields) != 2 {
 			err := errors.New("invalid authorization header format")
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(err))
 			return
@@ -57,12 +58,29 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 // Role-based access control middleware
 func requireAdminOrEditor(store *db.Store) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+		//authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+		authPayload, exists := c.Get(authorizationPayloadKey)
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(errors.New("unauthorized")))
+			return
+		}
+		payload, ok := authPayload.(*token.Payload)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(errors.New("unauthorized")))
+			return
+		}
 
 		// Get user to check role and superuser status
-		user, err := store.GetUserByUsername(c, authPayload.Username)
+		user, err := store.GetUserByUsername(c, payload.Username)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, errorResponse(errors.New("user not found")))
+			c.Abort()
+			return
+		}
+
+		now := time.Now()
+		if user.DeletedAt.Valid || (user.LockedUntil.Valid && now.Before(user.LockedUntil.Time)) {
+			c.JSON(http.StatusUnauthorized, errorResponse(errors.New("account is suspended")))
 			c.Abort()
 			return
 		}

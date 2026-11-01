@@ -40,7 +40,7 @@ func NewPayload(username string, duration time.Duration) (*Payload, error) {
 }
 
 func (payload *Payload) Valid() error {
-	if payload == nil || payload.ID == uuid.Nil {
+	if payload == nil || payload.ID == uuid.Nil || payload.Username == "" {
 		return ErrInvalidToken
 	}
 	now := time.Now()
@@ -51,7 +51,7 @@ func (payload *Payload) Valid() error {
 		return ErrInvalidToken
 	}
 	if !now.Before(payload.ExpiresAt) {
-		return ErrInvalidToken
+		return ErrExpiredToken
 	}
 
 	return nil
