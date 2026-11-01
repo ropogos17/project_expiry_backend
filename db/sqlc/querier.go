@@ -32,6 +32,7 @@ type Querier interface {
 	GetItemByID(ctx context.Context, id int32) (Item, error)
 	GetLogByID(ctx context.Context, id int32) (Log, error)
 	GetRefreshTokenByID(ctx context.Context, id uuid.UUID) (RefreshToken, error)
+	GetRefreshTokenByIDForUpdate(ctx context.Context, id uuid.UUID) (RefreshToken, error)
 	GetRoleByID(ctx context.Context, id int32) (Role, error)
 	GetShareByID(ctx context.Context, id int32) (Share, error)
 	GetShareByStorageAndTargetUser(ctx context.Context, arg GetShareByStorageAndTargetUserParams) (Share, error)

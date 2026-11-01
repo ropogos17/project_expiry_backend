@@ -56,6 +56,26 @@ func (q *Queries) GetRefreshTokenByID(ctx context.Context, id uuid.UUID) (Refres
 	return i, err
 }
 
+const getRefreshTokenByIDForUpdate = `-- name: GetRefreshTokenByIDForUpdate :one
+SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
+WHERE id = $1 AND deleted_at IS NULL
+LIMIT 1
+FOR UPDATE
+`
+
+func (q *Queries) GetRefreshTokenByIDForUpdate(ctx context.Context, id uuid.UUID) (RefreshToken, error) {
+	row := q.db.QueryRowContext(ctx, getRefreshTokenByIDForUpdate, id)
+	var i RefreshToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.IssuedAt,
+		&i.ExpiresAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const hardDeleteRefreshToken = `-- name: HardDeleteRefreshToken :exec
 DELETE FROM refresh_tokens
 WHERE id = $1
