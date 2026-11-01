@@ -32,6 +32,9 @@ func NewServer(config utils.Config, store *db.Store) (*Server, error) {
 
 func (server *Server) SetupRouter() {
 	router := gin.Default()
+	if err := router.SetTrustedProxies([]string{"172.16.0.0/12"}); err != nil {
+		panic(err)
+	}
 	authMiddleware := authMiddleware(server.tokenMaker)
 
 	// Auth routes (public)
