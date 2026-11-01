@@ -19,23 +19,40 @@ type Payload struct {
 }
 
 func NewPayload(username string, duration time.Duration) (*Payload, error) {
+	if duration <= 0 {
+		return nil, ErrInvalidToken
+	}
+
 	tokenID, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err
 	}
 
+	now := time.Now()
+
 	payload := &Payload{
 		ID:        tokenID,
 		Username:  username,
-		IssuedAt:  time.Now(),
-		ExpiresAt: time.Now().Add(duration),
+		IssuedAt:  now,
+		ExpiresAt: now.Add(duration),
 	}
 	return payload, nil
 }
 
 func (payload *Payload) Valid() error {
-	if time.Now().After(payload.ExpiresAt) {
-		return ErrExpiredToken
+	if payload == nil || payload.ID == uuid.Nil {
+		return ErrInvalidToken
 	}
+	now := time.Now()
+	if now.Before(payload.IssuedAt) {
+		return ErrInvalidToken
+	}
+	if !payload.ExpiresAt.After(payload.IssuedAt) {
+		return ErrInvalidToken
+	}
+	if !now.Before(payload.ExpiresAt) {
+		return ErrInvalidToken
+	}
+
 	return nil
 }
