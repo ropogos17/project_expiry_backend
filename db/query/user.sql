@@ -69,6 +69,6 @@ UPDATE users
 SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL;
 
--- name: HardDeleteUser :exec
+-- name: HardDeleteUser :execrows
 DELETE FROM users
 WHERE id = $1;

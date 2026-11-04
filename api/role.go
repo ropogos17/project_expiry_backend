@@ -3,9 +3,11 @@ package api
 import (
 	"database/sql"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	db "project_expiry_backend/db/sqlc"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 type createRoleRequest struct {
@@ -19,12 +21,16 @@ func (server *Server) createRole(c *gin.Context) {
 		return
 	}
 
-	role, err := server.store.CreateRole(c, req.Name)
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "role cannot be empty"})
+	}
+	role, err := server.store.CreateRole(c.Request.Context(), name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	c.JSON(http.StatusOK, role)
+	c.JSON(http.StatusCreated, role)
 }
 
 type getRoleRequest struct {
@@ -38,7 +44,7 @@ func (server *Server) getRole(c *gin.Context) {
 		return
 	}
 
-	role, err := server.store.GetRoleByID(c, req.ID)
+	role, err := server.store.GetRoleByID(c.Request.Context(), req.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, errorResponse(err))
@@ -52,7 +58,7 @@ func (server *Server) getRole(c *gin.Context) {
 
 type listRolesRequest struct {
 	PageID   int32 `form:"page_id" binding:"required,min=1"`
-	PageSize int32 `form:"page_size" binding:"required,min=5,max=20"`
+	PageSize int32 `form:"page_size" binding:"required,min=1,max=20"`
 }
 
 func (server *Server) listRoles(c *gin.Context) {
@@ -62,12 +68,12 @@ func (server *Server) listRoles(c *gin.Context) {
 		return
 	}
 
-	arg := db.ListRolesParams{
+	arg := db.ListRolesParams{ // TODO: túlcsordulás
 		Limit:  req.PageSize,
 		Offset: (req.PageID - 1) * req.PageSize,
 	}
 
-	roles, err := server.store.ListRoles(c, arg)
+	roles, err := server.store.ListRoles(c.Request.Context(), arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -86,54 +92,43 @@ func (server *Server) deleteRole(c *gin.Context) {
 		return
 	}
 
-	if err := server.store.HardDeleteRole(c, req.ID); err != nil {
+	rows, err := server.store.HardDeleteRole(c.Request.Context(), req.ID)
+
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	c.JSON(http.StatusOK, struct{}{})
+	if rows == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "role does not exist"})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
-type updateRoleUriRequest struct {
-	ID int32 `uri:"id" binding:"required,min=1"`
-}
-type updateRoleBodyRequest struct {
+type updateRoleRequest struct {
+	ID   int32  `uri:"id" binding:"required,min=1"`
 	Name string `json:"name" binding:"required"`
 }
 
 func (server *Server) updateRole(c *gin.Context) {
-	var uriReq updateRoleUriRequest
-	if err := c.ShouldBindUri(&uriReq); err != nil {
+	var req updateRoleRequest
+	if err := c.ShouldBindUri(&req); err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	var bodyReq updateRoleBodyRequest
-	if err := c.ShouldBindJSON(&bodyReq); err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "role cannot be empty"})
 		return
 	}
-
-	currentRole, err := server.store.GetRoleByID(c, uriReq.ID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "role not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, errorResponse(err))
-		}
-		return
-	}
-
-	if currentRole.Name == bodyReq.Name {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "role name cannot be the same"})
-		return
-	}
-
+	name = strings.ToLower(name)
 	arg := db.UpdateRoleParams{
-		ID:   uriReq.ID,
-		Name: bodyReq.Name,
+		ID:   req.ID,
+		Name: name,
 	}
 
-	updatedRole, err := server.store.UpdateRole(c, arg)
+	updatedRole, err := server.store.UpdateRole(c.Request.Context(), arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

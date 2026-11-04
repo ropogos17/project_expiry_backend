@@ -44,10 +44,10 @@ UPDATE refresh_tokens
 SET deleted_at = NULL
 WHERE id = $1 AND deleted_at IS NOT NULL;
 
--- name: HardDeleteRefreshToken :exec
+-- name: HardDeleteRefreshToken :execrows
 DELETE FROM refresh_tokens
 WHERE id = $1;
 
--- name: HardDeleteRefreshTokensByUser :exec
+-- name: HardDeleteRefreshTokensByUser :execrows
 DELETE FROM refresh_tokens
 WHERE user_id = $1;

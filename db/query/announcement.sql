@@ -34,6 +34,6 @@ UPDATE announcements
 SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL;
 
--- name: HardDeleteAnnouncement :exec
+-- name: HardDeleteAnnouncement :execrows
 DELETE FROM announcements
 WHERE id = $1;

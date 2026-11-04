@@ -35,6 +35,6 @@ SET
 WHERE id = $1
 RETURNING *;
 
--- name: HardDeleteShare :exec
+-- name: HardDeleteShare :execrows
 DELETE FROM shares
 WHERE id = $1;

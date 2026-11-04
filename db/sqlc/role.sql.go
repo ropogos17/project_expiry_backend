@@ -34,14 +34,17 @@ func (q *Queries) GetRoleByID(ctx context.Context, id int32) (Role, error) {
 	return i, err
 }
 
-const hardDeleteRole = `-- name: HardDeleteRole :exec
+const hardDeleteRole = `-- name: HardDeleteRole :execrows
 DELETE FROM roles
 WHERE id = $1
 `
 
-func (q *Queries) HardDeleteRole(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, hardDeleteRole, id)
-	return err
+func (q *Queries) HardDeleteRole(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteRole, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listRoles = `-- name: ListRoles :many

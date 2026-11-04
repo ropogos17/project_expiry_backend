@@ -86,14 +86,17 @@ func (q *Queries) GetStorageByID(ctx context.Context, id int32) (Storage, error)
 	return i, err
 }
 
-const hardDeleteStorage = `-- name: HardDeleteStorage :exec
+const hardDeleteStorage = `-- name: HardDeleteStorage :execrows
 DELETE FROM storages
 WHERE id = $1
 `
 
-func (q *Queries) HardDeleteStorage(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, hardDeleteStorage, id)
-	return err
+func (q *Queries) HardDeleteStorage(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteStorage, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listStorages = `-- name: ListStorages :many

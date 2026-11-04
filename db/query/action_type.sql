@@ -24,6 +24,6 @@ SET name = $2
 WHERE id = $1
 RETURNING *;
 
--- name: HardDeleteActionType :exec
+-- name: HardDeleteActionType :execrows
 DELETE FROM action_types
 WHERE id = $1;

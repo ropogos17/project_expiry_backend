@@ -108,6 +108,6 @@ UPDATE items
 SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL;
 
--- name: HardDeleteItem :exec
+-- name: HardDeleteItem :execrows
 DELETE FROM items
 WHERE id = $1;

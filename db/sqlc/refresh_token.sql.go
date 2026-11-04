@@ -76,24 +76,30 @@ func (q *Queries) GetRefreshTokenByIDForUpdate(ctx context.Context, id uuid.UUID
 	return i, err
 }
 
-const hardDeleteRefreshToken = `-- name: HardDeleteRefreshToken :exec
+const hardDeleteRefreshToken = `-- name: HardDeleteRefreshToken :execrows
 DELETE FROM refresh_tokens
 WHERE id = $1
 `
 
-func (q *Queries) HardDeleteRefreshToken(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, hardDeleteRefreshToken, id)
-	return err
+func (q *Queries) HardDeleteRefreshToken(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteRefreshToken, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
-const hardDeleteRefreshTokensByUser = `-- name: HardDeleteRefreshTokensByUser :exec
+const hardDeleteRefreshTokensByUser = `-- name: HardDeleteRefreshTokensByUser :execrows
 DELETE FROM refresh_tokens
 WHERE user_id = $1
 `
 
-func (q *Queries) HardDeleteRefreshTokensByUser(ctx context.Context, userID int32) error {
-	_, err := q.db.ExecContext(ctx, hardDeleteRefreshTokensByUser, userID)
-	return err
+func (q *Queries) HardDeleteRefreshTokensByUser(ctx context.Context, userID int32) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteRefreshTokensByUser, userID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listRefreshTokens = `-- name: ListRefreshTokens :many

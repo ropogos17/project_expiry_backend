@@ -102,14 +102,17 @@ func (q *Queries) GetItemByID(ctx context.Context, id int32) (Item, error) {
 	return i, err
 }
 
-const hardDeleteItem = `-- name: HardDeleteItem :exec
+const hardDeleteItem = `-- name: HardDeleteItem :execrows
 DELETE FROM items
 WHERE id = $1
 `
 
-func (q *Queries) HardDeleteItem(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, hardDeleteItem, id)
-	return err
+func (q *Queries) HardDeleteItem(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteItem, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listActiveItemsByStorage = `-- name: ListActiveItemsByStorage :many

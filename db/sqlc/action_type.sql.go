@@ -48,14 +48,17 @@ func (q *Queries) GetActionTypeByID(ctx context.Context, id int32) (ActionType, 
 	return i, err
 }
 
-const hardDeleteActionType = `-- name: HardDeleteActionType :exec
+const hardDeleteActionType = `-- name: HardDeleteActionType :execrows
 DELETE FROM action_types
 WHERE id = $1
 `
 
-func (q *Queries) HardDeleteActionType(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, hardDeleteActionType, id)
-	return err
+func (q *Queries) HardDeleteActionType(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteActionType, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listActionTypes = `-- name: ListActionTypes :many

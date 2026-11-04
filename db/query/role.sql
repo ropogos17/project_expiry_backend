@@ -24,6 +24,6 @@ SET name = $2
 WHERE id = $1
 RETURNING *;
 
--- name: HardDeleteRole :exec
+-- name: HardDeleteRole :execrows
 DELETE FROM roles
 WHERE id = $1;

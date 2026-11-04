@@ -87,14 +87,17 @@ func (q *Queries) GetShareByStorageAndTargetUser(ctx context.Context, arg GetSha
 	return i, err
 }
 
-const hardDeleteShare = `-- name: HardDeleteShare :exec
+const hardDeleteShare = `-- name: HardDeleteShare :execrows
 DELETE FROM shares
 WHERE id = $1
 `
 
-func (q *Queries) HardDeleteShare(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, hardDeleteShare, id)
-	return err
+func (q *Queries) HardDeleteShare(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteShare, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listShares = `-- name: ListShares :many

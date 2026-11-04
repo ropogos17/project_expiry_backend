@@ -40,17 +40,17 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int32) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
-	HardDeleteActionType(ctx context.Context, id int32) error
-	HardDeleteAnnouncement(ctx context.Context, id int32) error
-	HardDeleteCategory(ctx context.Context, id int32) error
-	HardDeleteItem(ctx context.Context, id int32) error
-	HardDeleteLog(ctx context.Context, id int32) error
-	HardDeleteRefreshToken(ctx context.Context, id uuid.UUID) error
-	HardDeleteRefreshTokensByUser(ctx context.Context, userID int32) error
-	HardDeleteRole(ctx context.Context, id int32) error
-	HardDeleteShare(ctx context.Context, id int32) error
-	HardDeleteStorage(ctx context.Context, id int32) error
-	HardDeleteUser(ctx context.Context, id int32) error
+	HardDeleteActionType(ctx context.Context, id int32) (int64, error)
+	HardDeleteAnnouncement(ctx context.Context, id int32) (int64, error)
+	HardDeleteCategory(ctx context.Context, id int32) (int64, error)
+	HardDeleteItem(ctx context.Context, id int32) (int64, error)
+	HardDeleteLog(ctx context.Context, id int32) (int64, error)
+	HardDeleteRefreshToken(ctx context.Context, id uuid.UUID) (int64, error)
+	HardDeleteRefreshTokensByUser(ctx context.Context, userID int32) (int64, error)
+	HardDeleteRole(ctx context.Context, id int32) (int64, error)
+	HardDeleteShare(ctx context.Context, id int32) (int64, error)
+	HardDeleteStorage(ctx context.Context, id int32) (int64, error)
+	HardDeleteUser(ctx context.Context, id int32) (int64, error)
 	ListActionTypes(ctx context.Context, arg ListActionTypesParams) ([]ActionType, error)
 	ListActiveItemsByStorage(ctx context.Context, arg ListActiveItemsByStorageParams) ([]Item, error)
 	ListActiveItemsByUser(ctx context.Context, arg ListActiveItemsByUserParams) ([]Item, error)

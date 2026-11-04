@@ -63,14 +63,17 @@ func (q *Queries) GetLogByID(ctx context.Context, id int32) (Log, error) {
 	return i, err
 }
 
-const hardDeleteLog = `-- name: HardDeleteLog :exec
+const hardDeleteLog = `-- name: HardDeleteLog :execrows
 DELETE FROM logs
 WHERE id = $1
 `
 
-func (q *Queries) HardDeleteLog(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, hardDeleteLog, id)
-	return err
+func (q *Queries) HardDeleteLog(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteLog, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listLogs = `-- name: ListLogs :many

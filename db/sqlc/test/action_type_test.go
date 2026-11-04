@@ -2,9 +2,10 @@ package test
 
 import (
 	"context"
-	"github.com/google/uuid"
 	db "project_expiry_backend/db/sqlc"
 	"testing"
+
+	"github.com/google/uuid"
 
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +53,7 @@ func TestUpdateActionType(t *testing.T) {
 
 func TestHardDeleteActionType(t *testing.T) {
 	actionType1 := createRandomActionType(t)
-	err := testQueries.HardDeleteActionType(context.Background(), actionType1.ID)
+	rows, err := testQueries.HardDeleteActionType(context.Background(), actionType1.ID)
 	require.NoError(t, err)
 
 	actionType2, err := testQueries.GetActionTypeByID(context.Background(), actionType1.ID)

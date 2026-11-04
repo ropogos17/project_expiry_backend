@@ -21,6 +21,6 @@ SET
 WHERE id = $1
 RETURNING *;
 
--- name: HardDeleteLog :exec
+-- name: HardDeleteLog :execrows
 DELETE FROM logs
 WHERE id = $1;

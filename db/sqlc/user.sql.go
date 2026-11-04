@@ -174,14 +174,17 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 	return i, err
 }
 
-const hardDeleteUser = `-- name: HardDeleteUser :exec
+const hardDeleteUser = `-- name: HardDeleteUser :execrows
 DELETE FROM users
 WHERE id = $1
 `
 
-func (q *Queries) HardDeleteUser(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, hardDeleteUser, id)
-	return err
+func (q *Queries) HardDeleteUser(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteUser, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listUsers = `-- name: ListUsers :many

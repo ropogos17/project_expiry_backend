@@ -76,14 +76,17 @@ func (q *Queries) GetAnnouncementByID(ctx context.Context, id int32) (Announceme
 	return i, err
 }
 
-const hardDeleteAnnouncement = `-- name: HardDeleteAnnouncement :exec
+const hardDeleteAnnouncement = `-- name: HardDeleteAnnouncement :execrows
 DELETE FROM announcements
 WHERE id = $1
 `
 
-func (q *Queries) HardDeleteAnnouncement(ctx context.Context, id int32) error {
-	_, err := q.db.ExecContext(ctx, hardDeleteAnnouncement, id)
-	return err
+func (q *Queries) HardDeleteAnnouncement(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteAnnouncement, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listAnnouncements = `-- name: ListAnnouncements :many
