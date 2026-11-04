@@ -1,0 +1,118 @@
+name: ci-cd
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      POSTGRES_USER: ropogos
+      POSTGRES_PASSWORD: ci_test_password
+      POSTGRES_DB: project_expiry_db
+      DB_DRIVER: postgres
+      DB_SOURCE: postgres://ropogos:ci_test_password@localhost:5432/project_expiry_db?sslmode=disable
+      SERVER_ADDRESS: 0.0.0.0:8080
+      TOKEN_SYMMETRIC_KEY: "0123456789abcdef0123456789abcdef"
+      ACCESS_TOKEN_DURATION: 15m
+      REFRESH_TOKEN_DURATION: 24h
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ropogos
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: project_expiry_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ropogos -d project_expiry_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.3"
+          cache: true
+
+      - name: Create test config
+        run: |
+          cat > app.env <<EOF
+          POSTGRES_USER=${POSTGRES_USER}
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          POSTGRES_DB=${POSTGRES_DB}
+          DB_DRIVER=${DB_DRIVER}
+          DB_SOURCE=${DB_SOURCE}
+          SERVER_ADDRESS=${SERVER_ADDRESS}
+          TOKEN_SYMMETRIC_KEY=${TOKEN_SYMMETRIC_KEY}
+          ACCESS_TOKEN_DURATION=${ACCESS_TOKEN_DURATION}
+          REFRESH_TOKEN_DURATION=${REFRESH_TOKEN_DURATION}
+          EOF
+
+      - name: Install golang-migrate
+        run: |
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.18.3
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Run migrations
+        run: make migrateup
+
+      - name: Test
+        run: make test
+
+  deploy:
+    name: Deploy to VPS
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Configure SSH
+        env:
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" 'bash -se' <<'REMOTE'
+            set -Eeuo pipefail
+
+            cd /opt/project_expiry_backend
+
+            git pull --ff-only origin main
+
+            docker compose --env-file app.env up -d --wait db
+
+            docker compose --env-file app.env run --rm migrate
+
+            docker compose --env-file app.env up -d --build app caddy
+          REMOTE

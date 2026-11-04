@@ -70,16 +70,26 @@ func (server *Server) SetupRouter() {
 	}
 
 	// Admin/Editor only routes for announcements
-	adminRoutes := router.Group("/").Use(authMiddleware, requireAdminOrEditor(server.store))
+	adminOrEditorRoutes := router.Group("/").Use(authMiddleware, requireAdminOrEditor(server.store))
 	{
 		// User routes
-		adminRoutes.GET("/users", server.listUsers)
+		adminOrEditorRoutes.GET("/users", server.listUsers)
 
-		/*adminRoutes.POST("/announcements", server.createAnnouncement)
-		adminRoutes.PUT("/announcements/:id", server.updateAnnouncement)
-		adminRoutes.DELETE("/announcements/:id", server.deleteAnnouncement)
-		adminRoutes.POST("/announcements/:id/restore", server.restoreAnnouncement)
-		adminRoutes.DELETE("/announcements/:id/hard", server.hardDeleteAnnouncement)*/
+		/*adminOrEditorRoutes.POST("/announcements", server.createAnnouncement)
+		adminOrEditorRoutes.PUT("/announcements/:id", server.updateAnnouncement)
+		adminOrEditorRoutes.DELETE("/announcements/:id", server.deleteAnnouncement)
+		adminOrEditorRoutes.POST("/announcements/:id/restore", server.restoreAnnouncement)
+		adminOrEditorRoutes.DELETE("/announcements/:id/hard", server.hardDeleteAnnouncement)*/
+	}
+
+	adminRoutes := router.Group("/").Use(authMiddleware)
+	{
+		// Roles
+		adminRoutes.POST("/roles", server.createRole)
+		adminRoutes.GET("/roles/:id", server.getRole)
+		adminRoutes.GET("/roles", server.listRoles)
+		adminRoutes.DELETE("/roles/:id", server.deleteRole)
+		adminRoutes.PUT("/roles/:id", server.updateRole)
 	}
 
 	server.router = router

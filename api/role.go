@@ -1,6 +1,5 @@
 package api
 
-/*
 import (
 	"database/sql"
 	"errors"
@@ -39,7 +38,7 @@ func (server *Server) getRole(c *gin.Context) {
 		return
 	}
 
-	role, err := server.store.GetRole(c, req.ID)
+	role, err := server.store.GetRoleByID(c, req.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, errorResponse(err))
@@ -87,7 +86,7 @@ func (server *Server) deleteRole(c *gin.Context) {
 		return
 	}
 
-	if err := server.store.DeleteRole(c, req.ID); err != nil {
+	if err := server.store.HardDeleteRole(c, req.ID); err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -114,7 +113,7 @@ func (server *Server) updateRole(c *gin.Context) {
 		return
 	}
 
-	currentRole, err := server.store.GetRole(c, uriReq.ID)
+	currentRole, err := server.store.GetRoleByID(c, uriReq.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "role not found"})
@@ -141,4 +140,3 @@ func (server *Server) updateRole(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, updatedRole)
 }
-*/
