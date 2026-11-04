@@ -2,10 +2,11 @@ package api
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	db "project_expiry_backend/db/sqlc"
 	"project_expiry_backend/token"
 	"project_expiry_backend/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Server struct {
@@ -58,14 +59,7 @@ func (server *Server) SetupRouter() {
 		protectedRoutes.PUT("/users/:id", server.updateUser)
 		protectedRoutes.DELETE("/users/:id", server.deleteUser)
 
-		// Role routes
-		/*protectedRoutes.POST("/roles", server.createRole)
-		protectedRoutes.GET("/roles/:id", server.getRole)
-		protectedRoutes.GET("/roles", server.listRoles)
-		protectedRoutes.DELETE("/roles/:id", server.deleteRole)
-		protectedRoutes.PUT("/roles/:id", server.updateRole)
-
-		protectedRoutes.GET("/announcements", server.listAnnouncements)
+		/*protectedRoutes.GET("/announcements", server.listAnnouncements)
 		protectedRoutes.GET("/announcements/:id", server.getAnnouncement)*/
 	}
 
@@ -82,7 +76,7 @@ func (server *Server) SetupRouter() {
 		adminOrEditorRoutes.DELETE("/announcements/:id/hard", server.hardDeleteAnnouncement)*/
 	}
 
-	adminRoutes := router.Group("/").Use(authMiddleware)
+	adminRoutes := router.Group("/").Use(authMiddleware, requireAdmin(server.store))
 	{
 		// Roles
 		adminRoutes.POST("/roles", server.createRole)
