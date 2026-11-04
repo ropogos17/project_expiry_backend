@@ -3,10 +3,11 @@ package test
 import (
 	"context"
 	"database/sql"
-	"github.com/google/uuid"
 	db "project_expiry_backend/db/sqlc"
 	"project_expiry_backend/utils"
 	"testing"
+
+	"github.com/google/uuid"
 
 	"github.com/stretchr/testify/require"
 )
@@ -91,7 +92,6 @@ func TestUpdateUser(t *testing.T) {
 		Email:             uuid.New().String() + "@test.com",
 		Phone:             sql.NullString{Valid: false},
 		HasAvatar:         false,
-		Password:          utils.RandomString(32),
 		EmailVerified:     false,
 		PhoneVerified:     false,
 		TwoFactorEnabled:  false,
