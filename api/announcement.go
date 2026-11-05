@@ -1,12 +1,14 @@
 package api
 
-/*
 import (
 	"database/sql"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"net/http"
+	"net/url"
 	db "project_expiry_backend/db/sqlc"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 // Request structs for announcements
@@ -15,7 +17,7 @@ type createAnnouncementRequest struct {
 	Name         string `json:"name" binding:"required"`
 	Description  string `json:"description"`
 	ExternalLink string `json:"external_link"`
-	HasRead      bool   `json:"has_read"`
+	CreatedBy    bool   `json:"created_by"`
 }
 
 type getAnnouncementRequest struct {
@@ -23,7 +25,7 @@ type getAnnouncementRequest struct {
 }
 
 type listAnnouncementsRequest struct {
-	PageID   int32 `form:"page_id" binding:"required,min=1"`
+	PageID   int32 `form:"page_id" binding:"required,min=1,max=1000000"`
 	PageSize int32 `form:"page_size" binding:"required,min=5,max=20"`
 }
 
@@ -35,7 +37,7 @@ type updateAnnouncementBodyRequest struct {
 	Name         string `json:"name" binding:"required"`
 	Description  string `json:"description"`
 	ExternalLink string `json:"external_link"`
-	HasRead      bool   `json:"has_read"`
+	CreatedBy    bool   `json:"created_by"`
 }
 
 type deleteAnnouncementRequest struct {
@@ -44,6 +46,36 @@ type deleteAnnouncementRequest struct {
 
 type restoreAnnouncementRequest struct {
 	ID int32 `uri:"id" binding:"required,min=1"`
+}
+
+func nullableString(value string) sql.NullString {
+	value = strings.TrimSpace(value)
+
+	return sql.NullString{
+		String: value,
+		Valid:  value != "",
+	}
+}
+
+func validateExternalLink(value string) error {
+	value = strings.TrimSpace(value)
+
+	if value == "" {
+		return nil
+	}
+
+	parsed, err := url.ParseRequestURI(value)
+	if err != nil {
+		return errors.New("invalid external link")
+	}
+
+	scheme := strings.ToLower(parsed.Scheme)
+
+	if (scheme != "http" && scheme != "https") || parsed.Host == "" {
+		return errors.New("external link must be a valid HTTP or HTTPS URL")
+	}
+
+	return nil
 }
 
 // User endpoints (list and get announcements)
@@ -61,10 +93,13 @@ func (server *Server) listAnnouncements(c *gin.Context) {
 		Offset: (req.PageID - 1) * req.PageSize,
 	}
 
-	announcements, err := server.store.ListAnnouncements(c, arg)
+	announcements, err := server.store.ListAnnouncements(c.Request.Context(), arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
+	}
+	if announcements == nil {
+		announcements = []db.Announcement{}
 	}
 
 	c.JSON(http.StatusOK, announcements)
@@ -78,7 +113,7 @@ func (server *Server) getAnnouncement(c *gin.Context) {
 		return
 	}
 
-	announcement, err := server.store.GetAnnouncement(c, req.ID)
+	announcement, err := server.store.GetAnnouncementByID(c.Request.Context(), req.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, errorResponse(err))
@@ -107,20 +142,30 @@ func (server *Server) createAnnouncement(c *gin.Context) {
 		return
 	}
 
-	arg := db.CreateAnnouncementParams{
-		Name: req.Name,
-		Description: sql.NullString{
-			String: req.Description,
-			Valid:  req.Description != "",
-		},
-		ExternalLink: sql.NullString{
-			String: req.ExternalLink,
-			Valid:  req.ExternalLink != "",
-		},
-		HasRead: req.HasRead,
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "announcement name cannot be empty"})
+	}
+	req.ExternalLink = strings.TrimSpace(req.ExternalLink)
+	if err := validateExternalLink(req.ExternalLink); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	announcement, err := server.store.CreateAnnouncement(c, arg)
+	authUser, status, err := server.getAuthenticatedUser(c)
+	if err != nil {
+		c.JSON(status, errorResponse(err))
+		return
+	}
+
+	arg := db.CreateAnnouncementParams{
+		Name:         req.Name,
+		Description:  nullableString(req.Description),
+		ExternalLink: nullableString(req.ExternalLink),
+		CreatedBy:    authUser.ID,
+	}
+
+	announcement, err := server.store.CreateAnnouncement(c.Request.Context(), arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -143,38 +188,29 @@ func (server *Server) updateAnnouncement(c *gin.Context) {
 		return
 	}
 
-	// Check if announcement exists and is not deleted
-	currentAnnouncement, err := server.store.GetAnnouncement(c, uriReq.ID)
+	bodyReq.Name = strings.TrimSpace(bodyReq.Name)
+	if bodyReq.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "announcement name cannot be empty"})
+	}
+	bodyReq.ExternalLink = strings.TrimSpace(bodyReq.ExternalLink)
+	if err := validateExternalLink(bodyReq.ExternalLink); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	arg := db.UpdateAnnouncementParams{
+		ID:           uriReq.ID,
+		Name:         bodyReq.Name,
+		Description:  nullableString(bodyReq.Description),
+		ExternalLink: nullableString(bodyReq.ExternalLink),
+	}
+
+	updatedAnnouncement, err := server.store.UpdateAnnouncement(c.Request.Context(), arg)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "announcement not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	if currentAnnouncement.DeletedAt.Valid {
-		c.JSON(http.StatusNotFound, gin.H{"error": "announcement not found"})
-		return
-	}
-
-	arg := db.UpdateAnnouncementParams{
-		ID:   uriReq.ID,
-		Name: bodyReq.Name,
-		Description: sql.NullString{
-			String: bodyReq.Description,
-			Valid:  bodyReq.Description != "",
-		},
-		ExternalLink: sql.NullString{
-			String: bodyReq.ExternalLink,
-			Valid:  bodyReq.ExternalLink != "",
-		},
-		HasRead: bodyReq.HasRead,
-	}
-
-	updatedAnnouncement, err := server.store.UpdateAnnouncement(c, arg)
-	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
@@ -190,18 +226,7 @@ func (server *Server) deleteAnnouncement(c *gin.Context) {
 		return
 	}
 
-	// Check if announcement exists
-	_, err := server.store.GetAnnouncement(c, req.ID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "announcement not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	err = server.store.DeleteAnnouncement(c, req.ID)
+	err := server.store.DeleteAnnouncement(c.Request.Context(), req.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -218,7 +243,7 @@ func (server *Server) restoreAnnouncement(c *gin.Context) {
 		return
 	}
 
-	err := server.store.RestoreAnnouncement(c, req.ID)
+	err := server.store.RestoreAnnouncement(c.Request.Context(), req.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -227,7 +252,7 @@ func (server *Server) restoreAnnouncement(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "announcement restored successfully"})
 }
 
-// hardDeleteAnnouncement handles DELETE /announcements/:id/hard - requires admin/editor role (permanent delete)
+// hardDeleteAnnouncement handles DELETE /announcements/:id/hard - requires admin role (permanent delete)
 func (server *Server) hardDeleteAnnouncement(c *gin.Context) {
 	var req deleteAnnouncementRequest
 	if err := c.ShouldBindUri(&req); err != nil {
@@ -235,12 +260,15 @@ func (server *Server) hardDeleteAnnouncement(c *gin.Context) {
 		return
 	}
 
-	err := server.store.HardDeleteAnnouncement(c, req.ID)
+	rows, err := server.store.HardDeleteAnnouncement(c.Request.Context(), req.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
+	if rows == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "announcement not found"})
+	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "announcement permanently deleted"})
 }
-*/
