@@ -2,8 +2,9 @@ package token
 
 import (
 	"errors"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -13,12 +14,13 @@ var (
 
 type Payload struct {
 	ID        uuid.UUID `json:"id"`
+	UserID    int32     `json:"user_id"`
 	Username  string    `json:"username"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-func NewPayload(username string, duration time.Duration) (*Payload, error) {
+func NewPayload(userID int32, username string, duration time.Duration) (*Payload, error) {
 	if duration <= 0 {
 		return nil, ErrInvalidToken
 	}
@@ -32,6 +34,7 @@ func NewPayload(username string, duration time.Duration) (*Payload, error) {
 
 	payload := &Payload{
 		ID:        tokenID,
+		UserID:    userID,
 		Username:  username,
 		IssuedAt:  now,
 		ExpiresAt: now.Add(duration),
@@ -40,7 +43,7 @@ func NewPayload(username string, duration time.Duration) (*Payload, error) {
 }
 
 func (payload *Payload) Valid() error {
-	if payload == nil || payload.ID == uuid.Nil || payload.Username == "" {
+	if payload == nil || payload.ID == uuid.Nil || payload.Username == "" || payload.UserID == 0 {
 		return ErrInvalidToken
 	}
 	now := time.Now()

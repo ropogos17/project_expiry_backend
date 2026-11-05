@@ -3,14 +3,16 @@ package api
 import (
 	"database/sql"
 	"errors"
-	"github.com/google/uuid"
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
 	db "project_expiry_backend/db/sqlc"
 	"project_expiry_backend/token"
 	"project_expiry_backend/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
 type createUserRequest struct {
@@ -130,6 +132,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	}
 
 	accessToken, err := server.tokenMaker.CreateToken(
+		user.ID,
 		user.Username,
 		server.config.AccessTokenDuration,
 	)
@@ -203,7 +206,8 @@ func (server *Server) changePassword(ctx *gin.Context) {
 			return err
 		}
 
-		return q.HardDeleteRefreshTokensByUser(ctx, user.ID)
+		_, err = q.HardDeleteRefreshTokensByUser(ctx, user.ID)
+		return err
 	})
 
 	if err != nil {
@@ -255,6 +259,7 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 		}
 
 		accessToken, err = server.tokenMaker.CreateToken(
+			user.ID,
 			user.Username,
 			server.config.AccessTokenDuration,
 		)
@@ -262,7 +267,7 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 			return err
 		}
 
-		if err := q.HardDeleteRefreshToken(ctx, oldToken.ID); err != nil {
+		if _, err := q.HardDeleteRefreshToken(ctx, oldToken.ID); err != nil {
 			return err
 		}
 
@@ -308,7 +313,7 @@ func (server *Server) logoutUser(ctx *gin.Context) {
 		return
 	}
 
-	err = server.store.HardDeleteRefreshToken(ctx, tokenID)
+	_, err = server.store.HardDeleteRefreshToken(ctx, tokenID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
