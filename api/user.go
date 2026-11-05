@@ -3,11 +3,12 @@ package api
 import (
 	"database/sql"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	db "project_expiry_backend/db/sqlc"
 	"project_expiry_backend/token"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 // -----------------------------------------------------------------------------
@@ -414,7 +415,8 @@ func (server *Server) deleteUser(c *gin.Context) {
 			return err
 		}
 
-		return q.HardDeleteRefreshTokensByUser(c, req.ID)
+		_, err := q.HardDeleteRefreshTokensByUser(c, req.ID)
+		return err
 	})
 
 	if err != nil {

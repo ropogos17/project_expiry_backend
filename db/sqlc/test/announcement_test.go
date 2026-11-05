@@ -127,7 +127,7 @@ func TestHardDeleteAnnouncement(t *testing.T) {
 }
 
 func TestListAnnouncements(t *testing.T) {
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		createRandomAnnouncement(t)
 	}
 
