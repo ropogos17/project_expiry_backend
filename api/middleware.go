@@ -57,12 +57,12 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 
 // requireAdminOrEditor allows superusers, admins and editors.
 func requireAdminOrEditor(store *db.Store) gin.HandlerFunc {
-	return requireRole(store, []int32{2, 3})
+	return requireRole(store, []int32{adminRoleID, editorRoleID})
 }
 
 // requireAdmin allows only superusers and admins.
 func requireAdmin(store *db.Store) gin.HandlerFunc {
-	return requireRole(store, []int32{2})
+	return requireRole(store, []int32{adminRoleID})
 }
 
 // Role-based access control middleware

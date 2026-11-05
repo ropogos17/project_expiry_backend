@@ -20,8 +20,8 @@ type getUserRequest struct {
 }
 
 type listUsersRequest struct {
-	PageID   int32 `form:"page_id" binding:"omitempty,min=1,max=1000000"`
-	PageSize int32 `form:"page_size" binding:"omitempty,min=1,max=100"`
+	PageID   *int32 `form:"page_id" binding:"omitempty,min=1,max=1000000"`
+	PageSize *int32 `form:"page_size" binding:"omitempty,min=1,max=100"`
 }
 
 type updateUserRequest struct {
@@ -67,7 +67,7 @@ func (server *Server) getAuthenticatedUser(c *gin.Context) (db.User, int, error)
 		return db.User{}, http.StatusUnauthorized, errors.New("unauthorized")
 	}
 
-	user, err := server.store.GetUserByUsername(c, payload.Username)
+	user, err := server.store.GetUserByID(c, payload.UserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return db.User{}, http.StatusUnauthorized, errors.New("user not found")
@@ -85,7 +85,11 @@ func (server *Server) getAuthenticatedUser(c *gin.Context) (db.User, int, error)
 }
 
 func isAdmin(user db.User) bool {
-	return user.IsSuperuser || user.RoleID == 2
+	return user.IsSuperuser || user.RoleID == adminRoleID
+}
+
+func isEditor(user db.User) bool {
+	return user.IsSuperuser || user.RoleID == editorRoleID
 }
 
 func hasAdminFields(req updateUserRequest) bool {
@@ -124,9 +128,10 @@ func (server *Server) getUser(c *gin.Context) {
 	}
 
 	admin := isAdmin(authUser)
+	editor := isEditor(authUser)
 
 	// only admin
-	if authUser.ID != req.ID && !admin {
+	if authUser.ID != req.ID && !admin && !editor {
 		c.JSON(http.StatusForbidden, errorResponse(errors.New("access denied")))
 		return
 	}
@@ -162,7 +167,7 @@ func (server *Server) listUsers(c *gin.Context) {
 		return
 	}
 
-	if !isAdmin(authUser) {
+	if !isAdmin(authUser) && !isEditor(authUser) {
 		c.JSON(http.StatusForbidden, errorResponse(errors.New("admin permission required")))
 		return
 	}
@@ -175,18 +180,20 @@ func (server *Server) listUsers(c *gin.Context) {
 	}
 
 	// default paging
-	if req.PageID == 0 {
-		req.PageID = 1
+	pageID := int32(1)
+	pageSize := int32(20)
+
+	if req.PageID != nil {
+		pageID = *req.PageID
+	}
+	if req.PageSize != nil {
+		pageSize = *req.PageSize
 	}
 
-	if req.PageSize == 0 {
-		req.PageSize = 20
-	}
-
-	offset := (req.PageID - 1) * req.PageSize
+	offset := (pageID - 1) * pageSize
 
 	users, err := server.store.ListUsers(c, db.ListUsersParams{
-		Limit:  req.PageSize,
+		Limit:  pageSize,
 		Offset: offset,
 	})
 	if err != nil {
@@ -404,15 +411,12 @@ func (server *Server) deleteUser(c *gin.Context) {
 		return
 	}
 
-	if user.DeletedAt.Valid {
-		c.Status(http.StatusNoContent)
-		return
-	}
-
 	// delete refresh tokens
 	err = server.store.ExecTx(c, func(q *db.Queries) error {
-		if err := q.SoftDeleteUser(c, req.ID); err != nil {
-			return err
+		if !user.DeletedAt.Valid {
+			if err := q.SoftDeleteUser(c, req.ID); err != nil {
+				return err
+			}
 		}
 
 		_, err := q.HardDeleteRefreshTokensByUser(c, req.ID)
