@@ -103,6 +103,7 @@ func (server *Server) hardDeleteCategory(c *gin.Context) {
 	}
 	if rows == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "category not found"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "category permanently deleted"})
 }

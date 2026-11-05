@@ -87,8 +87,8 @@ func (server *Server) getLog(c *gin.Context) {
 }
 
 type listLogsRequest struct {
-	PageID   int32 `uri:"page_id" binding:"required,min=1,max=1000000"`
-	PageSize int32 `uri:"page_size" binding:"required,min=1,max=20"`
+	PageID   int32 `form:"page_id" binding:"required,min=1"`
+	PageSize int32 `form:"page_size" binding:"required,min=1,max=100"`
 }
 
 func (server *Server) listLogs(c *gin.Context) {
@@ -132,6 +132,7 @@ func (server *Server) hardDeleteLog(c *gin.Context) {
 	}
 	if rows == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "log not found"})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "log permanently deleted"})
 }

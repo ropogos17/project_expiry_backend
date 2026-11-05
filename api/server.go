@@ -59,11 +59,12 @@ func (server *Server) SetupRouter() {
 		protectedRoutes.PUT("/users/:id", server.updateUser)
 		protectedRoutes.DELETE("/users/:id", server.deleteUser)
 
-		/*protectedRoutes.GET("/announcements", server.listAnnouncements)
-		protectedRoutes.GET("/announcements/:id", server.getAnnouncement)*/
+		// Announcements
+		protectedRoutes.GET("/announcements", server.listAnnouncements)
+		protectedRoutes.GET("/announcements/:id", server.getAnnouncement)
 	}
 
-	// Admin/Editor only routes for announcements
+	// Admin/Editor only routes
 	adminOrEditorRoutes := router.Group("/").Use(authMiddleware, requireAdminOrEditor(server.store))
 	{
 		// User
@@ -76,6 +77,7 @@ func (server *Server) SetupRouter() {
 		adminOrEditorRoutes.POST("/announcements/:id/restore", server.restoreAnnouncement)
 	}
 
+	// Admin only routes
 	adminRoutes := router.Group("/").Use(authMiddleware, requireAdmin(server.store))
 	{
 		// Roles
@@ -87,6 +89,29 @@ func (server *Server) SetupRouter() {
 
 		// Announcements
 		adminRoutes.DELETE("/announcements/:id/hard", server.hardDeleteAnnouncement)
+
+		// Action types
+		adminRoutes.POST("/action-types", server.createActionType)
+		adminRoutes.GET("/action-types", server.listActionTypes)
+		adminRoutes.GET("/action-types/:id", server.getActionType)
+		adminRoutes.PUT("/action-types/:id", server.updateActionType)
+		adminRoutes.DELETE("/action-types/:id/hard", server.hardDeleteActionType)
+		adminRoutes.GET("/action-types/exists/:name", server.actionTypeExistsByName)
+
+		// Categories
+		adminRoutes.POST("/categories", server.createCategory)
+		adminRoutes.GET("/categories", server.listCategories)
+		adminRoutes.GET("/categories/:id", server.getCategory)
+		adminRoutes.PUT("/categories/:id", server.updateCategory)
+		adminRoutes.DELETE("/categories/:id/hard", server.hardDeleteCategory)
+		adminRoutes.GET("/categories/exists/:name", server.categoryExistsByName)
+
+		// Logs
+		adminRoutes.POST("/logs", server.createLog)
+		adminRoutes.GET("/logs", server.listLogs)
+		adminRoutes.GET("/logs/:id", server.getLog)
+		adminRoutes.PUT("/logs/:id", server.updateLog)
+		adminRoutes.DELETE("/logs/:id/hard", server.hardDeleteLog)
 	}
 
 	server.router = router
