@@ -1,12 +1,13 @@
 package api
 
-/*
 import (
 	"database/sql"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	db "project_expiry_backend/db/sqlc"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 type createActionTypeRequest struct {
@@ -20,12 +21,17 @@ func (server *Server) createActionType(c *gin.Context) {
 		return
 	}
 
-	actionType, err := server.store.CreateActionType(c, req.Name)
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "action type name cannot be empty"})
+		return
+	}
+	actionType, err := server.store.CreateActionType(c.Request.Context(), req.Name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	c.JSON(http.StatusOK, actionType)
+	c.JSON(http.StatusCreated, actionType)
 }
 
 type getActionTypeRequest struct {
@@ -39,7 +45,7 @@ func (server *Server) getActionType(c *gin.Context) {
 		return
 	}
 
-	actionType, err := server.store.GetActionTypeByID(c, req.ID)
+	actionType, err := server.store.GetActionTypeByID(c.Request.Context(), req.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, errorResponse(err))
@@ -52,7 +58,7 @@ func (server *Server) getActionType(c *gin.Context) {
 }
 
 type listActionTypesRequest struct {
-	PageID   int32 `form:"page_id" binding:"required,min=1"`
+	PageID   int32 `form:"page_id" binding:"required,min=1,max=1000000"`
 	PageSize int32 `form:"page_size" binding:"required,min=5,max=20"`
 }
 
@@ -68,10 +74,13 @@ func (server *Server) listActionTypes(c *gin.Context) {
 		Offset: (req.PageID - 1) * req.PageSize,
 	}
 
-	actionTypes, err := server.store.ListActionTypes(c, arg)
+	actionTypes, err := server.store.ListActionTypes(c.Request.Context(), arg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
+	}
+	if actionTypes == nil {
+		actionTypes = []db.ActionType{}
 	}
 	c.JSON(http.StatusOK, actionTypes)
 }
@@ -80,18 +89,23 @@ type deleteActionTypeRequest struct {
 	ID int32 `uri:"id" binding:"required,min=1"`
 }
 
-func (server *Server) deleteActionType(c *gin.Context) {
+func (server *Server) hardDeleteActionType(c *gin.Context) {
 	var req deleteActionTypeRequest
 	if err := c.ShouldBindUri(&req); err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	if err := server.store.HardDeleteActionType(c, req.ID); err != nil {
+	rows, err := server.store.HardDeleteActionType(c.Request.Context(), req.ID)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	c.JSON(http.StatusOK, struct{}{})
+	if rows == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "action type not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "action type permanently deleted"})
 }
 
 type updateActionTypeUriRequest struct {
@@ -114,18 +128,9 @@ func (server *Server) updateActionType(c *gin.Context) {
 		return
 	}
 
-	currentActionType, err := server.store.GetActionTypeByID(c, uriReq.ID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "action type not found"})
-		} else {
-			c.JSON(http.StatusInternalServerError, errorResponse(err))
-		}
-		return
-	}
-
-	if currentActionType.Name == bodyReq.Name {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "action type name cannot be the same"})
+	bodyReq.Name = strings.TrimSpace(bodyReq.Name)
+	if bodyReq.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "announcement name cannot be empty"})
 		return
 	}
 
@@ -134,11 +139,33 @@ func (server *Server) updateActionType(c *gin.Context) {
 		Name: bodyReq.Name,
 	}
 
-	actionType, err := server.store.UpdateActionType(c, arg)
+	updatedActionType, err := server.store.UpdateActionType(c.Request.Context(), arg)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "action type not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	c.JSON(http.StatusOK, updatedActionType)
+}
+
+type actionTypeExistsByNameRequest struct {
+	Name string `uri:"name" binding:"required,min=1"`
+}
+
+func (server *Server) actionTypeExistsByName(c *gin.Context) {
+	var req actionTypeExistsByNameRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	exists, err := server.store.ActionTypeExistsByName(c.Request.Context(), req.Name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	c.JSON(http.StatusOK, actionType)
+	c.JSON(http.StatusOK, exists)
 }
-*/

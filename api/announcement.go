@@ -145,6 +145,7 @@ func (server *Server) createAnnouncement(c *gin.Context) {
 	req.Name = strings.TrimSpace(req.Name)
 	if req.Name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "announcement name cannot be empty"})
+		return
 	}
 	req.ExternalLink = strings.TrimSpace(req.ExternalLink)
 	if err := validateExternalLink(req.ExternalLink); err != nil {
