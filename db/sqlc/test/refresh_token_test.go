@@ -71,12 +71,17 @@ func TestRestoreRefreshToken(t *testing.T) {
 
 func TestHardDeleteRefreshToken(t *testing.T) {
 	token1 := createRandomRefreshToken(t)
-	err := testQueries.HardDeleteRefreshToken(context.Background(), token1.ID)
+	rows, err := testQueries.HardDeleteRefreshToken(context.Background(), token1.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	token2, err := testQueries.GetRefreshTokenByID(context.Background(), token1.ID)
 	require.Error(t, err)
 	require.Empty(t, token2)
+
+	rows, err = testQueries.HardDeleteRefreshToken(context.Background(), token1.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), rows)
 }
 
 func TestListRefreshTokens(t *testing.T) {

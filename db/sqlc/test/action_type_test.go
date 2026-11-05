@@ -55,10 +55,15 @@ func TestHardDeleteActionType(t *testing.T) {
 	actionType1 := createRandomActionType(t)
 	rows, err := testQueries.HardDeleteActionType(context.Background(), actionType1.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	actionType2, err := testQueries.GetActionTypeByID(context.Background(), actionType1.ID)
 	require.Error(t, err)
 	require.Empty(t, actionType2)
+
+	rows, err = testQueries.HardDeleteActionType(context.Background(), actionType1.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), rows)
 }
 
 func TestListActionTypes(t *testing.T) {

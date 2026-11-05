@@ -53,13 +53,18 @@ func TestUpdateRole(t *testing.T) {
 
 func TestHardDeleteRole(t *testing.T) {
 	role1 := createRandomRole(t)
-	err := testQueries.HardDeleteRole(context.Background(), role1.ID)
+	rows, err := testQueries.HardDeleteRole(context.Background(), role1.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	role2, err := testQueries.GetRoleByID(context.Background(), role1.ID)
 	require.Error(t, err)
 	require.EqualError(t, err, sql.ErrNoRows.Error())
 	require.Empty(t, role2)
+
+	rows, err = testQueries.HardDeleteRole(context.Background(), role1.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), rows)
 }
 
 func TestListRoles(t *testing.T) {

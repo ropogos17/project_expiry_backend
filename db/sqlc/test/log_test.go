@@ -75,12 +75,17 @@ func TestUpdateLog(t *testing.T) {
 
 func TestHardDeleteLog(t *testing.T) {
 	log1 := createRandomLog(t)
-	err := testQueries.HardDeleteLog(context.Background(), log1.ID)
+	rows, err := testQueries.HardDeleteLog(context.Background(), log1.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	log2, err := testQueries.GetLogByID(context.Background(), log1.ID)
 	require.Error(t, err)
 	require.Empty(t, log2)
+
+	rows, err = testQueries.HardDeleteLog(context.Background(), log1.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), rows)
 }
 
 func TestListLogs(t *testing.T) {

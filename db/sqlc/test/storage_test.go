@@ -103,12 +103,17 @@ func TestRestoreStorage(t *testing.T) {
 
 func TestHardDeleteStorage(t *testing.T) {
 	storage1 := createRandomStorage(t)
-	err := testQueries.HardDeleteStorage(context.Background(), storage1.ID)
+	rows, err := testQueries.HardDeleteStorage(context.Background(), storage1.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	storage2, err := testQueries.GetStorageByID(context.Background(), storage1.ID)
 	require.Error(t, err)
 	require.Empty(t, storage2)
+
+	rows, err = testQueries.HardDeleteStorage(context.Background(), storage1.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), rows)
 }
 
 func TestListStorages(t *testing.T) {

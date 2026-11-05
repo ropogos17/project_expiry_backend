@@ -143,13 +143,18 @@ func TestRestoreUser(t *testing.T) {
 
 func TestHardDeleteUser(t *testing.T) {
 	user1 := createRandomUser(t)
-	err := testQueries.HardDeleteUser(context.Background(), user1.ID)
+	rows, err := testQueries.HardDeleteUser(context.Background(), user1.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	user2, err := testQueries.GetUserByID(context.Background(), user1.ID)
 	require.Error(t, err)
 	require.EqualError(t, err, sql.ErrNoRows.Error())
 	require.Empty(t, user2)
+
+	rows, err = testQueries.HardDeleteUser(context.Background(), user1.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), rows)
 }
 
 func TestListUsers(t *testing.T) {

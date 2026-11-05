@@ -112,13 +112,18 @@ func TestRestoreAnnouncement(t *testing.T) {
 
 func TestHardDeleteAnnouncement(t *testing.T) {
 	announcement1 := createRandomAnnouncement(t)
-	err := testQueries.HardDeleteAnnouncement(context.Background(), announcement1.ID)
+	rows, err := testQueries.HardDeleteAnnouncement(context.Background(), announcement1.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	announcement2, err := testQueries.GetAnnouncementByID(context.Background(), announcement1.ID)
 	require.Error(t, err)
 	require.EqualError(t, err, sql.ErrNoRows.Error())
 	require.Empty(t, announcement2)
+
+	rows, err = testQueries.HardDeleteAnnouncement(context.Background(), announcement1.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), rows)
 }
 
 func TestListAnnouncements(t *testing.T) {

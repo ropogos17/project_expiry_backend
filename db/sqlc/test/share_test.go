@@ -89,12 +89,17 @@ func TestUpdateShare(t *testing.T) {
 
 func TestHardDeleteShare(t *testing.T) {
 	share1 := createRandomShare(t)
-	err := testQueries.HardDeleteShare(context.Background(), share1.ID)
+	rows, err := testQueries.HardDeleteShare(context.Background(), share1.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	share2, err := testQueries.GetShareByID(context.Background(), share1.ID)
 	require.Error(t, err)
 	require.Empty(t, share2)
+
+	rows, err = testQueries.HardDeleteShare(context.Background(), share1.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), rows)
 }
 
 func TestListShares(t *testing.T) {

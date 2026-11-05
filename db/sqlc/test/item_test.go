@@ -113,12 +113,17 @@ func TestRestoreItem(t *testing.T) {
 
 func TestHardDeleteItem(t *testing.T) {
 	item1 := createRandomItem(t)
-	err := testQueries.HardDeleteItem(context.Background(), item1.ID)
+	rows, err := testQueries.HardDeleteItem(context.Background(), item1.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	item2, err := testQueries.GetItemByID(context.Background(), item1.ID)
 	require.Error(t, err)
 	require.Empty(t, item2)
+
+	rows, err = testQueries.HardDeleteItem(context.Background(), item1.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), rows)
 }
 
 func TestListItems(t *testing.T) {

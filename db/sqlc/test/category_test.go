@@ -2,9 +2,10 @@ package test
 
 import (
 	"context"
-	"github.com/google/uuid"
 	db "project_expiry_backend/db/sqlc"
 	"testing"
+
+	"github.com/google/uuid"
 
 	"github.com/stretchr/testify/require"
 )
@@ -52,12 +53,17 @@ func TestUpdateCategory(t *testing.T) {
 
 func TestHardDeleteCategory(t *testing.T) {
 	category1 := createRandomCategory(t)
-	err := testQueries.HardDeleteCategory(context.Background(), category1.ID)
+	rows, err := testQueries.HardDeleteCategory(context.Background(), category1.ID)
 	require.NoError(t, err)
+	require.Equal(t, int64(1), rows)
 
 	category2, err := testQueries.GetCategoryByID(context.Background(), category1.ID)
 	require.Error(t, err)
 	require.Empty(t, category2)
+
+	rows, err = testQueries.HardDeleteCategory(context.Background(), category1.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), rows)
 }
 
 func TestListCategories(t *testing.T) {
