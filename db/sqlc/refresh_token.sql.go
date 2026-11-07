@@ -15,11 +15,11 @@ import (
 const createRefreshToken = `-- name: CreateRefreshToken :one
 INSERT INTO refresh_tokens (user_id, issued_at, expires_at)
 VALUES ($1, $2, $3)
-RETURNING id, user_id, issued_at, expires_at, deleted_at
+RETURNING id, issued_at, expires_at, deleted_at, token_hash, user_id
 `
 
 type CreateRefreshTokenParams struct {
-	UserID    int32     `json:"user_id"`
+	UserID    uuid.UUID `json:"user_id"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
@@ -29,16 +29,17 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 	var i RefreshToken
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.IssuedAt,
 		&i.ExpiresAt,
 		&i.DeletedAt,
+		&i.TokenHash,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const getRefreshTokenByID = `-- name: GetRefreshTokenByID :one
-SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
+SELECT id, issued_at, expires_at, deleted_at, token_hash, user_id FROM refresh_tokens
 WHERE id = $1 AND deleted_at IS NULL
 LIMIT 1
 `
@@ -48,16 +49,17 @@ func (q *Queries) GetRefreshTokenByID(ctx context.Context, id uuid.UUID) (Refres
 	var i RefreshToken
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.IssuedAt,
 		&i.ExpiresAt,
 		&i.DeletedAt,
+		&i.TokenHash,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const getRefreshTokenByIDForUpdate = `-- name: GetRefreshTokenByIDForUpdate :one
-SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
+SELECT id, issued_at, expires_at, deleted_at, token_hash, user_id FROM refresh_tokens
 WHERE id = $1 AND deleted_at IS NULL
 LIMIT 1
 FOR UPDATE
@@ -68,10 +70,11 @@ func (q *Queries) GetRefreshTokenByIDForUpdate(ctx context.Context, id uuid.UUID
 	var i RefreshToken
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.IssuedAt,
 		&i.ExpiresAt,
 		&i.DeletedAt,
+		&i.TokenHash,
+		&i.UserID,
 	)
 	return i, err
 }
@@ -94,7 +97,7 @@ DELETE FROM refresh_tokens
 WHERE user_id = $1
 `
 
-func (q *Queries) HardDeleteRefreshTokensByUser(ctx context.Context, userID int32) (int64, error) {
+func (q *Queries) HardDeleteRefreshTokensByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
 	result, err := q.db.ExecContext(ctx, hardDeleteRefreshTokensByUser, userID)
 	if err != nil {
 		return 0, err
@@ -103,7 +106,7 @@ func (q *Queries) HardDeleteRefreshTokensByUser(ctx context.Context, userID int3
 }
 
 const listRefreshTokens = `-- name: ListRefreshTokens :many
-SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
+SELECT id, issued_at, expires_at, deleted_at, token_hash, user_id FROM refresh_tokens
 ORDER BY issued_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -124,10 +127,11 @@ func (q *Queries) ListRefreshTokens(ctx context.Context, arg ListRefreshTokensPa
 		var i RefreshToken
 		if err := rows.Scan(
 			&i.ID,
-			&i.UserID,
 			&i.IssuedAt,
 			&i.ExpiresAt,
 			&i.DeletedAt,
+			&i.TokenHash,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -143,16 +147,16 @@ func (q *Queries) ListRefreshTokens(ctx context.Context, arg ListRefreshTokensPa
 }
 
 const listRefreshTokensByUser = `-- name: ListRefreshTokensByUser :many
-SELECT id, user_id, issued_at, expires_at, deleted_at FROM refresh_tokens
+SELECT id, issued_at, expires_at, deleted_at, token_hash, user_id FROM refresh_tokens
 WHERE user_id = $1 AND deleted_at IS NULL
 ORDER BY issued_at DESC
 LIMIT $2 OFFSET $3
 `
 
 type ListRefreshTokensByUserParams struct {
-	UserID int32 `json:"user_id"`
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	UserID uuid.UUID `json:"user_id"`
+	Limit  int32     `json:"limit"`
+	Offset int32     `json:"offset"`
 }
 
 func (q *Queries) ListRefreshTokensByUser(ctx context.Context, arg ListRefreshTokensByUserParams) ([]RefreshToken, error) {
@@ -166,10 +170,11 @@ func (q *Queries) ListRefreshTokensByUser(ctx context.Context, arg ListRefreshTo
 		var i RefreshToken
 		if err := rows.Scan(
 			&i.ID,
-			&i.UserID,
 			&i.IssuedAt,
 			&i.ExpiresAt,
 			&i.DeletedAt,
+			&i.TokenHash,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -213,12 +218,12 @@ SET
     issued_at = $3,
     expires_at = $4
 WHERE id = $1
-RETURNING id, user_id, issued_at, expires_at, deleted_at
+RETURNING id, issued_at, expires_at, deleted_at, token_hash, user_id
 `
 
 type UpdateRefreshTokenParams struct {
 	ID        uuid.UUID `json:"id"`
-	UserID    int32     `json:"user_id"`
+	UserID    uuid.UUID `json:"user_id"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
@@ -233,10 +238,11 @@ func (q *Queries) UpdateRefreshToken(ctx context.Context, arg UpdateRefreshToken
 	var i RefreshToken
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.IssuedAt,
 		&i.ExpiresAt,
 		&i.DeletedAt,
+		&i.TokenHash,
+		&i.UserID,
 	)
 	return i, err
 }

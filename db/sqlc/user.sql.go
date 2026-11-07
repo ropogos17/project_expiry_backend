@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -17,25 +19,25 @@ INSERT INTO users (
     email,
     phone,
     has_avatar,
-    password,
+    password_hash,
     role_id,
     is_superuser
 )
 VALUES (
            $1, $2, $3, $4, $5, $6, $7, $8
        )
-RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at
+RETURNING name, username, email, phone, has_avatar, password_hash, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at, legacy_integer_id, id
 `
 
 type CreateUserParams struct {
-	Name        string         `json:"name"`
-	Username    string         `json:"username"`
-	Email       string         `json:"email"`
-	Phone       sql.NullString `json:"phone"`
-	HasAvatar   bool           `json:"has_avatar"`
-	Password    string         `json:"password"`
-	RoleID      int32          `json:"role_id"`
-	IsSuperuser bool           `json:"is_superuser"`
+	Name         string         `json:"name"`
+	Username     string         `json:"username"`
+	Email        sql.NullString `json:"email"`
+	Phone        sql.NullString `json:"phone"`
+	HasAvatar    bool           `json:"has_avatar"`
+	PasswordHash sql.NullString `json:"password_hash"`
+	RoleID       int32          `json:"role_id"`
+	IsSuperuser  bool           `json:"is_superuser"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -45,19 +47,18 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Email,
 		arg.Phone,
 		arg.HasAvatar,
-		arg.Password,
+		arg.PasswordHash,
 		arg.RoleID,
 		arg.IsSuperuser,
 	)
 	var i User
 	err := row.Scan(
-		&i.ID,
 		&i.Name,
 		&i.Username,
 		&i.Email,
 		&i.Phone,
 		&i.HasAvatar,
-		&i.Password,
+		&i.PasswordHash,
 		&i.EmailVerified,
 		&i.PhoneVerified,
 		&i.TwoFactorEnabled,
@@ -71,26 +72,27 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LegacyIntegerID,
+		&i.ID,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at FROM users
+SELECT name, username, email, phone, has_avatar, password_hash, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at, legacy_integer_id, id FROM users
 WHERE email = $1 LIMIT 1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
-		&i.ID,
 		&i.Name,
 		&i.Username,
 		&i.Email,
 		&i.Phone,
 		&i.HasAvatar,
-		&i.Password,
+		&i.PasswordHash,
 		&i.EmailVerified,
 		&i.PhoneVerified,
 		&i.TwoFactorEnabled,
@@ -104,26 +106,27 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LegacyIntegerID,
+		&i.ID,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at FROM users
+SELECT name, username, email, phone, has_avatar, password_hash, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at, legacy_integer_id, id FROM users
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
-		&i.ID,
 		&i.Name,
 		&i.Username,
 		&i.Email,
 		&i.Phone,
 		&i.HasAvatar,
-		&i.Password,
+		&i.PasswordHash,
 		&i.EmailVerified,
 		&i.PhoneVerified,
 		&i.TwoFactorEnabled,
@@ -137,12 +140,14 @@ func (q *Queries) GetUserByID(ctx context.Context, id int32) (User, error) {
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LegacyIntegerID,
+		&i.ID,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at FROM users
+SELECT name, username, email, phone, has_avatar, password_hash, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at, legacy_integer_id, id FROM users
 WHERE username = $1 LIMIT 1
 `
 
@@ -150,13 +155,12 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 	row := q.db.QueryRowContext(ctx, getUserByUsername, username)
 	var i User
 	err := row.Scan(
-		&i.ID,
 		&i.Name,
 		&i.Username,
 		&i.Email,
 		&i.Phone,
 		&i.HasAvatar,
-		&i.Password,
+		&i.PasswordHash,
 		&i.EmailVerified,
 		&i.PhoneVerified,
 		&i.TwoFactorEnabled,
@@ -170,6 +174,8 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LegacyIntegerID,
+		&i.ID,
 	)
 	return i, err
 }
@@ -179,7 +185,7 @@ DELETE FROM users
 WHERE id = $1
 `
 
-func (q *Queries) HardDeleteUser(ctx context.Context, id int32) (int64, error) {
+func (q *Queries) HardDeleteUser(ctx context.Context, id uuid.UUID) (int64, error) {
 	result, err := q.db.ExecContext(ctx, hardDeleteUser, id)
 	if err != nil {
 		return 0, err
@@ -188,7 +194,7 @@ func (q *Queries) HardDeleteUser(ctx context.Context, id int32) (int64, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at FROM users
+SELECT name, username, email, phone, has_avatar, password_hash, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at, legacy_integer_id, id FROM users
 ORDER BY id
 LIMIT $1 OFFSET $2
 `
@@ -208,13 +214,12 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 	for rows.Next() {
 		var i User
 		if err := rows.Scan(
-			&i.ID,
 			&i.Name,
 			&i.Username,
 			&i.Email,
 			&i.Phone,
 			&i.HasAvatar,
-			&i.Password,
+			&i.PasswordHash,
 			&i.EmailVerified,
 			&i.PhoneVerified,
 			&i.TwoFactorEnabled,
@@ -228,6 +233,8 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.LegacyIntegerID,
+			&i.ID,
 		); err != nil {
 			return nil, err
 		}
@@ -248,7 +255,7 @@ SET deleted_at = NULL, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NOT NULL
 `
 
-func (q *Queries) RestoreUser(ctx context.Context, id int32) error {
+func (q *Queries) RestoreUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, restoreUser, id)
 	return err
 }
@@ -259,7 +266,7 @@ SET deleted_at = NOW(), updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 `
 
-func (q *Queries) SoftDeleteUser(ctx context.Context, id int32) error {
+func (q *Queries) SoftDeleteUser(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, softDeleteUser, id)
 	return err
 }
@@ -283,14 +290,14 @@ UPDATE users SET
                  is_superuser = $16,
                  updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, username, email, phone, has_avatar, password, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at
+RETURNING name, username, email, phone, has_avatar, password_hash, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at, legacy_integer_id, id
 `
 
 type UpdateUserParams struct {
-	ID                int32          `json:"id"`
+	ID                uuid.UUID      `json:"id"`
 	Name              string         `json:"name"`
 	Username          string         `json:"username"`
-	Email             string         `json:"email"`
+	Email             sql.NullString `json:"email"`
 	Phone             sql.NullString `json:"phone"`
 	HasAvatar         bool           `json:"has_avatar"`
 	EmailVerified     bool           `json:"email_verified"`
@@ -326,13 +333,12 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 	)
 	var i User
 	err := row.Scan(
-		&i.ID,
 		&i.Name,
 		&i.Username,
 		&i.Email,
 		&i.Phone,
 		&i.HasAvatar,
-		&i.Password,
+		&i.PasswordHash,
 		&i.EmailVerified,
 		&i.PhoneVerified,
 		&i.TwoFactorEnabled,
@@ -346,24 +352,26 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LegacyIntegerID,
+		&i.ID,
 	)
 	return i, err
 }
 
 const updateUserPassword = `-- name: UpdateUserPassword :exec
 UPDATE users
-SET password = $2,
+SET password_hash = $2,
     password_changed_at = NOW(),
     updated_at = NOW()
 WHERE id = $1
 `
 
 type UpdateUserPasswordParams struct {
-	ID       int32  `json:"id"`
-	Password string `json:"password"`
+	ID           uuid.UUID      `json:"id"`
+	PasswordHash sql.NullString `json:"password_hash"`
 }
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.ID, arg.Password)
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.ID, arg.PasswordHash)
 	return err
 }

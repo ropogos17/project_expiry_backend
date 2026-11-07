@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createItem = `-- name: CreateItem :one
@@ -17,7 +19,7 @@ INSERT INTO items (
 )
 VALUES ($1, $2, $3, $4, $5, $6,
     $7, $8, $9, $10)
-RETURNING id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, last_modified_by, deleted_at
+RETURNING id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, deleted_at, last_modified_by
 `
 
 type CreateItemParams struct {
@@ -30,7 +32,7 @@ type CreateItemParams struct {
 	ExpiresAt      time.Time      `json:"expires_at"`
 	StorageID      int32          `json:"storage_id"`
 	Shelf          int32          `json:"shelf"`
-	LastModifiedBy int32          `json:"last_modified_by"`
+	LastModifiedBy uuid.UUID      `json:"last_modified_by"`
 }
 
 func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (Item, error) {
@@ -59,8 +61,8 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (Item, e
 		&i.ExpiresAt,
 		&i.StorageID,
 		&i.Shelf,
-		&i.LastModifiedBy,
 		&i.DeletedAt,
+		&i.LastModifiedBy,
 	)
 	return i, err
 }
@@ -77,7 +79,7 @@ func (q *Queries) DeleteItem(ctx context.Context, id int32) error {
 }
 
 const getItemByID = `-- name: GetItemByID :one
-SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, last_modified_by, deleted_at FROM items
+SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, deleted_at, last_modified_by FROM items
 WHERE id = $1 LIMIT 1
 `
 
@@ -96,8 +98,8 @@ func (q *Queries) GetItemByID(ctx context.Context, id int32) (Item, error) {
 		&i.ExpiresAt,
 		&i.StorageID,
 		&i.Shelf,
-		&i.LastModifiedBy,
 		&i.DeletedAt,
+		&i.LastModifiedBy,
 	)
 	return i, err
 }
@@ -116,7 +118,7 @@ func (q *Queries) HardDeleteItem(ctx context.Context, id int32) (int64, error) {
 }
 
 const listActiveItemsByStorage = `-- name: ListActiveItemsByStorage :many
-SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, last_modified_by, deleted_at FROM items
+SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, deleted_at, last_modified_by FROM items
 WHERE storage_id = $1
   AND deleted_at IS NULL
   AND expires_at > $2
@@ -157,8 +159,8 @@ func (q *Queries) ListActiveItemsByStorage(ctx context.Context, arg ListActiveIt
 			&i.ExpiresAt,
 			&i.StorageID,
 			&i.Shelf,
-			&i.LastModifiedBy,
 			&i.DeletedAt,
+			&i.LastModifiedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -174,7 +176,7 @@ func (q *Queries) ListActiveItemsByStorage(ctx context.Context, arg ListActiveIt
 }
 
 const listActiveItemsByUser = `-- name: ListActiveItemsByUser :many
-SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified_by, i.deleted_at FROM items i
+SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.deleted_at, i.last_modified_by FROM items i
 JOIN storages s ON i.storage_id = s.id
 LEFT JOIN shares sh ON s.id = sh.storage_id
 WHERE (s.owner = $1 OR sh.target_user_id = $1)
@@ -185,7 +187,7 @@ LIMIT $3 OFFSET $4
 `
 
 type ListActiveItemsByUserParams struct {
-	Owner     int32     `json:"owner"`
+	Owner     uuid.UUID `json:"owner"`
 	ExpiresAt time.Time `json:"expires_at"`
 	Limit     int32     `json:"limit"`
 	Offset    int32     `json:"offset"`
@@ -217,8 +219,8 @@ func (q *Queries) ListActiveItemsByUser(ctx context.Context, arg ListActiveItems
 			&i.ExpiresAt,
 			&i.StorageID,
 			&i.Shelf,
-			&i.LastModifiedBy,
 			&i.DeletedAt,
+			&i.LastModifiedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -234,7 +236,7 @@ func (q *Queries) ListActiveItemsByUser(ctx context.Context, arg ListActiveItems
 }
 
 const listDeletedItemsByStorage = `-- name: ListDeletedItemsByStorage :many
-SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, last_modified_by, deleted_at FROM items
+SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, deleted_at, last_modified_by FROM items
 WHERE storage_id = $1
   AND deleted_at IS NOT NULL
 ORDER BY expires_at
@@ -268,8 +270,8 @@ func (q *Queries) ListDeletedItemsByStorage(ctx context.Context, arg ListDeleted
 			&i.ExpiresAt,
 			&i.StorageID,
 			&i.Shelf,
-			&i.LastModifiedBy,
 			&i.DeletedAt,
+			&i.LastModifiedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -285,7 +287,7 @@ func (q *Queries) ListDeletedItemsByStorage(ctx context.Context, arg ListDeleted
 }
 
 const listDeletedItemsByUser = `-- name: ListDeletedItemsByUser :many
-SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified_by, i.deleted_at FROM items i
+SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.deleted_at, i.last_modified_by FROM items i
 JOIN storages s ON i.storage_id = s.id
 LEFT JOIN shares sh ON s.id = sh.storage_id
 WHERE (s.owner = $1 OR sh.target_user_id = $1)
@@ -295,9 +297,9 @@ LIMIT $2 OFFSET $3
 `
 
 type ListDeletedItemsByUserParams struct {
-	Owner  int32 `json:"owner"`
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Owner  uuid.UUID `json:"owner"`
+	Limit  int32     `json:"limit"`
+	Offset int32     `json:"offset"`
 }
 
 func (q *Queries) ListDeletedItemsByUser(ctx context.Context, arg ListDeletedItemsByUserParams) ([]Item, error) {
@@ -321,8 +323,8 @@ func (q *Queries) ListDeletedItemsByUser(ctx context.Context, arg ListDeletedIte
 			&i.ExpiresAt,
 			&i.StorageID,
 			&i.Shelf,
-			&i.LastModifiedBy,
 			&i.DeletedAt,
+			&i.LastModifiedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -338,7 +340,7 @@ func (q *Queries) ListDeletedItemsByUser(ctx context.Context, arg ListDeletedIte
 }
 
 const listExpiredItemsByStorage = `-- name: ListExpiredItemsByStorage :many
-SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, last_modified_by, deleted_at FROM items
+SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, deleted_at, last_modified_by FROM items
 WHERE storage_id = $1
   AND deleted_at IS NULL
   AND expires_at <= $2
@@ -379,8 +381,8 @@ func (q *Queries) ListExpiredItemsByStorage(ctx context.Context, arg ListExpired
 			&i.ExpiresAt,
 			&i.StorageID,
 			&i.Shelf,
-			&i.LastModifiedBy,
 			&i.DeletedAt,
+			&i.LastModifiedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -396,7 +398,7 @@ func (q *Queries) ListExpiredItemsByStorage(ctx context.Context, arg ListExpired
 }
 
 const listExpiredItemsByUser = `-- name: ListExpiredItemsByUser :many
-SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified_by, i.deleted_at FROM items i
+SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.deleted_at, i.last_modified_by FROM items i
 JOIN storages s ON i.storage_id = s.id
 LEFT JOIN shares sh ON s.id = sh.storage_id
 WHERE (s.owner = $1 OR sh.target_user_id = $1)
@@ -407,7 +409,7 @@ LIMIT $3 OFFSET $4
 `
 
 type ListExpiredItemsByUserParams struct {
-	Owner     int32     `json:"owner"`
+	Owner     uuid.UUID `json:"owner"`
 	ExpiresAt time.Time `json:"expires_at"`
 	Limit     int32     `json:"limit"`
 	Offset    int32     `json:"offset"`
@@ -439,8 +441,8 @@ func (q *Queries) ListExpiredItemsByUser(ctx context.Context, arg ListExpiredIte
 			&i.ExpiresAt,
 			&i.StorageID,
 			&i.Shelf,
-			&i.LastModifiedBy,
 			&i.DeletedAt,
+			&i.LastModifiedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -456,7 +458,7 @@ func (q *Queries) ListExpiredItemsByUser(ctx context.Context, arg ListExpiredIte
 }
 
 const listItems = `-- name: ListItems :many
-SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, last_modified_by, deleted_at FROM items
+SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, deleted_at, last_modified_by FROM items
 ORDER BY id
 LIMIT $1 OFFSET $2
 `
@@ -487,8 +489,8 @@ func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]Item, e
 			&i.ExpiresAt,
 			&i.StorageID,
 			&i.Shelf,
-			&i.LastModifiedBy,
 			&i.DeletedAt,
+			&i.LastModifiedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -504,7 +506,7 @@ func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]Item, e
 }
 
 const listItemsByStorage = `-- name: ListItemsByStorage :many
-SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, last_modified_by, deleted_at FROM items
+SELECT id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, deleted_at, last_modified_by FROM items
 WHERE storage_id = $1 AND deleted_at IS NULL
 ORDER BY expires_at
 LIMIT $2 OFFSET $3
@@ -537,8 +539,8 @@ func (q *Queries) ListItemsByStorage(ctx context.Context, arg ListItemsByStorage
 			&i.ExpiresAt,
 			&i.StorageID,
 			&i.Shelf,
-			&i.LastModifiedBy,
 			&i.DeletedAt,
+			&i.LastModifiedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -554,7 +556,7 @@ func (q *Queries) ListItemsByStorage(ctx context.Context, arg ListItemsByStorage
 }
 
 const listItemsByUser = `-- name: ListItemsByUser :many
-SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.last_modified_by, i.deleted_at FROM items i
+SELECT DISTINCT i.id, i.name, i.category_id, i.description, i.quantity, i.has_image, i.stored_at, i.updated_at, i.expires_at, i.storage_id, i.shelf, i.deleted_at, i.last_modified_by FROM items i
 JOIN storages s ON i.storage_id = s.id
 LEFT JOIN shares sh ON s.id = sh.storage_id
 WHERE (s.owner = $1 OR sh.target_user_id = $1) AND i.deleted_at IS NULL
@@ -563,9 +565,9 @@ LIMIT $2 OFFSET $3
 `
 
 type ListItemsByUserParams struct {
-	Owner  int32 `json:"owner"`
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Owner  uuid.UUID `json:"owner"`
+	Limit  int32     `json:"limit"`
+	Offset int32     `json:"offset"`
 }
 
 func (q *Queries) ListItemsByUser(ctx context.Context, arg ListItemsByUserParams) ([]Item, error) {
@@ -589,8 +591,8 @@ func (q *Queries) ListItemsByUser(ctx context.Context, arg ListItemsByUserParams
 			&i.ExpiresAt,
 			&i.StorageID,
 			&i.Shelf,
-			&i.LastModifiedBy,
 			&i.DeletedAt,
+			&i.LastModifiedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -631,7 +633,7 @@ SET
     shelf = $10,
     last_modified_by = $11
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, last_modified_by, deleted_at
+RETURNING id, name, category_id, description, quantity, has_image, stored_at, updated_at, expires_at, storage_id, shelf, deleted_at, last_modified_by
 `
 
 type UpdateItemParams struct {
@@ -645,7 +647,7 @@ type UpdateItemParams struct {
 	ExpiresAt      time.Time      `json:"expires_at"`
 	StorageID      int32          `json:"storage_id"`
 	Shelf          int32          `json:"shelf"`
-	LastModifiedBy int32          `json:"last_modified_by"`
+	LastModifiedBy uuid.UUID      `json:"last_modified_by"`
 }
 
 func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) (Item, error) {
@@ -675,8 +677,8 @@ func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) (Item, e
 		&i.ExpiresAt,
 		&i.StorageID,
 		&i.Shelf,
-		&i.LastModifiedBy,
 		&i.DeletedAt,
+		&i.LastModifiedBy,
 	)
 	return i, err
 }

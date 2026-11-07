@@ -6,6 +6,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -37,8 +38,8 @@ type Querier interface {
 	GetShareByID(ctx context.Context, id int32) (Share, error)
 	GetShareByStorageAndTargetUser(ctx context.Context, arg GetShareByStorageAndTargetUserParams) (Share, error)
 	GetStorageByID(ctx context.Context, id int32) (Storage, error)
-	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserByID(ctx context.Context, id int32) (User, error)
+	GetUserByEmail(ctx context.Context, email sql.NullString) (User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	HardDeleteActionType(ctx context.Context, id int32) (int64, error)
 	HardDeleteAnnouncement(ctx context.Context, id int32) (int64, error)
@@ -46,11 +47,11 @@ type Querier interface {
 	HardDeleteItem(ctx context.Context, id int32) (int64, error)
 	HardDeleteLog(ctx context.Context, id int32) (int64, error)
 	HardDeleteRefreshToken(ctx context.Context, id uuid.UUID) (int64, error)
-	HardDeleteRefreshTokensByUser(ctx context.Context, userID int32) (int64, error)
+	HardDeleteRefreshTokensByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	HardDeleteRole(ctx context.Context, id int32) (int64, error)
 	HardDeleteShare(ctx context.Context, id int32) (int64, error)
 	HardDeleteStorage(ctx context.Context, id int32) (int64, error)
-	HardDeleteUser(ctx context.Context, id int32) (int64, error)
+	HardDeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
 	ListActionTypes(ctx context.Context, arg ListActionTypesParams) ([]ActionType, error)
 	ListActiveItemsByStorage(ctx context.Context, arg ListActiveItemsByStorageParams) ([]Item, error)
 	ListActiveItemsByUser(ctx context.Context, arg ListActiveItemsByUserParams) ([]Item, error)
@@ -76,10 +77,10 @@ type Querier interface {
 	RestoreItem(ctx context.Context, id int32) error
 	RestoreRefreshToken(ctx context.Context, id uuid.UUID) error
 	RestoreStorage(ctx context.Context, id int32) error
-	RestoreUser(ctx context.Context, id int32) error
+	RestoreUser(ctx context.Context, id uuid.UUID) error
 	RoleExistsByName(ctx context.Context, name string) (bool, error)
 	SoftDeleteRefreshToken(ctx context.Context, id uuid.UUID) error
-	SoftDeleteUser(ctx context.Context, id int32) error
+	SoftDeleteUser(ctx context.Context, id uuid.UUID) error
 	UpdateActionType(ctx context.Context, arg UpdateActionTypeParams) (ActionType, error)
 	UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncementParams) (Announcement, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // -----------------------------------------------------------------------------
@@ -16,7 +17,7 @@ import (
 // -----------------------------------------------------------------------------
 
 type getUserRequest struct {
-	ID int32 `uri:"id" binding:"required,min=1"`
+	ID string `uri:"id" binding:"required,uuid"`
 }
 
 type listUsersRequest struct {
@@ -40,7 +41,7 @@ type updateUserRequest struct {
 }
 
 type deleteUserRequest struct {
-	ID int32 `uri:"id" binding:"required,min=1"`
+	ID string `uri:"id" binding:"required,uuid"`
 }
 
 // -----------------------------------------------------------------------------
@@ -129,14 +130,19 @@ func (server *Server) getUser(c *gin.Context) {
 
 	admin := isAdmin(authUser)
 	editor := isEditor(authUser)
+	reqID, err := uuid.Parse(req.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	// only admin
-	if authUser.ID != req.ID && !admin && !editor {
+	if authUser.ID != reqID && !admin && !editor {
 		c.JSON(http.StatusForbidden, errorResponse(errors.New("access denied")))
 		return
 	}
 
-	user, err := server.store.GetUserByID(c, req.ID)
+	user, err := server.store.GetUserByID(c, reqID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, errorResponse(errors.New("user not found")))
@@ -245,9 +251,14 @@ func (server *Server) updateUser(c *gin.Context) {
 	}
 
 	admin := isAdmin(authUser)
+	reqID, err := uuid.Parse(uriReq.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
 	// only admin
-	if authUser.ID != uriReq.ID && !admin {
+	if authUser.ID != reqID && !admin {
 		c.JSON(http.StatusForbidden, errorResponse(errors.New("access denied")))
 		return
 	}
@@ -257,7 +268,7 @@ func (server *Server) updateUser(c *gin.Context) {
 		return
 	}
 
-	user, err := server.store.GetUserByID(c, uriReq.ID)
+	user, err := server.store.GetUserByID(c, reqID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, errorResponse(errors.New("user not found")))
@@ -301,11 +312,11 @@ func (server *Server) updateUser(c *gin.Context) {
 	}
 
 	if req.Email != nil {
-		if params.Email != *req.Email {
+		if params.Email.String != *req.Email {
 			params.EmailVerified = false
 		}
 
-		params.Email = *req.Email
+		params.Email = sql.NullString{String: *req.Email, Valid: true}
 	}
 
 	if req.Phone != nil {
@@ -395,12 +406,17 @@ func (server *Server) deleteUser(c *gin.Context) {
 	}
 
 	admin := isAdmin(authUser)
-	if authUser.ID != req.ID && !admin {
+	reqID, err := uuid.Parse(req.ID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	if authUser.ID != reqID && !admin {
 		c.JSON(http.StatusForbidden, errorResponse(errors.New("access denied")))
 		return
 	}
 
-	user, err := server.store.GetUserByID(c, req.ID)
+	user, err := server.store.GetUserByID(c, reqID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			c.JSON(http.StatusNotFound, errorResponse(errors.New("user not found")))
@@ -414,12 +430,12 @@ func (server *Server) deleteUser(c *gin.Context) {
 	// delete refresh tokens
 	err = server.store.ExecTx(c, func(q *db.Queries) error {
 		if !user.DeletedAt.Valid {
-			if err := q.SoftDeleteUser(c, req.ID); err != nil {
+			if err := q.SoftDeleteUser(c, reqID); err != nil {
 				return err
 			}
 		}
 
-		_, err := q.HardDeleteRefreshTokensByUser(c, req.ID)
+		_, err := q.HardDeleteRefreshTokensByUser(c, reqID)
 		return err
 	})
 

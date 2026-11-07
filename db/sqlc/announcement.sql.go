@@ -8,19 +8,21 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createAnnouncement = `-- name: CreateAnnouncement :one
 INSERT INTO announcements (name, description, external_link, created_by)
 VALUES ($1, $2, $3, $4)
-RETURNING id, name, description, external_link, created_at, updated_at, created_by, deleted_at
+RETURNING id, name, description, external_link, created_at, updated_at, deleted_at, created_by
 `
 
 type CreateAnnouncementParams struct {
 	Name         string         `json:"name"`
 	Description  sql.NullString `json:"description"`
 	ExternalLink sql.NullString `json:"external_link"`
-	CreatedBy    int32          `json:"created_by"`
+	CreatedBy    uuid.UUID      `json:"created_by"`
 }
 
 func (q *Queries) CreateAnnouncement(ctx context.Context, arg CreateAnnouncementParams) (Announcement, error) {
@@ -38,8 +40,8 @@ func (q *Queries) CreateAnnouncement(ctx context.Context, arg CreateAnnouncement
 		&i.ExternalLink,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.CreatedBy,
 		&i.DeletedAt,
+		&i.CreatedBy,
 	)
 	return i, err
 }
@@ -56,7 +58,7 @@ func (q *Queries) DeleteAnnouncement(ctx context.Context, id int32) error {
 }
 
 const getAnnouncementByID = `-- name: GetAnnouncementByID :one
-SELECT id, name, description, external_link, created_at, updated_at, created_by, deleted_at FROM announcements
+SELECT id, name, description, external_link, created_at, updated_at, deleted_at, created_by FROM announcements
 WHERE id = $1 LIMIT 1
 `
 
@@ -70,8 +72,8 @@ func (q *Queries) GetAnnouncementByID(ctx context.Context, id int32) (Announceme
 		&i.ExternalLink,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.CreatedBy,
 		&i.DeletedAt,
+		&i.CreatedBy,
 	)
 	return i, err
 }
@@ -90,7 +92,7 @@ func (q *Queries) HardDeleteAnnouncement(ctx context.Context, id int32) (int64, 
 }
 
 const listAnnouncements = `-- name: ListAnnouncements :many
-SELECT id, name, description, external_link, created_at, updated_at, created_by, deleted_at FROM announcements
+SELECT id, name, description, external_link, created_at, updated_at, deleted_at, created_by FROM announcements
 WHERE deleted_at IS NULL
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
@@ -117,8 +119,8 @@ func (q *Queries) ListAnnouncements(ctx context.Context, arg ListAnnouncementsPa
 			&i.ExternalLink,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.CreatedBy,
 			&i.DeletedAt,
+			&i.CreatedBy,
 		); err != nil {
 			return nil, err
 		}
@@ -153,7 +155,7 @@ SET
     created_by = $5,
     updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, name, description, external_link, created_at, updated_at, created_by, deleted_at
+RETURNING id, name, description, external_link, created_at, updated_at, deleted_at, created_by
 `
 
 type UpdateAnnouncementParams struct {
@@ -161,7 +163,7 @@ type UpdateAnnouncementParams struct {
 	Name         string         `json:"name"`
 	Description  sql.NullString `json:"description"`
 	ExternalLink sql.NullString `json:"external_link"`
-	CreatedBy    int32          `json:"created_by"`
+	CreatedBy    uuid.UUID      `json:"created_by"`
 }
 
 func (q *Queries) UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncementParams) (Announcement, error) {
@@ -180,8 +182,8 @@ func (q *Queries) UpdateAnnouncement(ctx context.Context, arg UpdateAnnouncement
 		&i.ExternalLink,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.CreatedBy,
 		&i.DeletedAt,
+		&i.CreatedBy,
 	)
 	return i, err
 }

@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createShare = `-- name: CreateShare :one
@@ -15,14 +17,14 @@ INSERT INTO shares (
     source_user_id, storage_id, target_user_id, can_share
 )
 VALUES ($1, $2, $3, $4)
-RETURNING id, source_user_id, storage_id, target_user_id, can_share, shared_at
+RETURNING id, storage_id, can_share, shared_at, source_user_id, target_user_id
 `
 
 type CreateShareParams struct {
-	SourceUserID int32 `json:"source_user_id"`
-	StorageID    int32 `json:"storage_id"`
-	TargetUserID int32 `json:"target_user_id"`
-	CanShare     bool  `json:"can_share"`
+	SourceUserID uuid.UUID `json:"source_user_id"`
+	StorageID    int32     `json:"storage_id"`
+	TargetUserID uuid.UUID `json:"target_user_id"`
+	CanShare     bool      `json:"can_share"`
 }
 
 func (q *Queries) CreateShare(ctx context.Context, arg CreateShareParams) (Share, error) {
@@ -35,17 +37,17 @@ func (q *Queries) CreateShare(ctx context.Context, arg CreateShareParams) (Share
 	var i Share
 	err := row.Scan(
 		&i.ID,
-		&i.SourceUserID,
 		&i.StorageID,
-		&i.TargetUserID,
 		&i.CanShare,
 		&i.SharedAt,
+		&i.SourceUserID,
+		&i.TargetUserID,
 	)
 	return i, err
 }
 
 const getShareByID = `-- name: GetShareByID :one
-SELECT id, source_user_id, storage_id, target_user_id, can_share, shared_at FROM shares
+SELECT id, storage_id, can_share, shared_at, source_user_id, target_user_id FROM shares
 WHERE id = $1 LIMIT 1
 `
 
@@ -54,23 +56,23 @@ func (q *Queries) GetShareByID(ctx context.Context, id int32) (Share, error) {
 	var i Share
 	err := row.Scan(
 		&i.ID,
-		&i.SourceUserID,
 		&i.StorageID,
-		&i.TargetUserID,
 		&i.CanShare,
 		&i.SharedAt,
+		&i.SourceUserID,
+		&i.TargetUserID,
 	)
 	return i, err
 }
 
 const getShareByStorageAndTargetUser = `-- name: GetShareByStorageAndTargetUser :one
-SELECT id, source_user_id, storage_id, target_user_id, can_share, shared_at FROM shares
+SELECT id, storage_id, can_share, shared_at, source_user_id, target_user_id FROM shares
 WHERE storage_id = $1 AND target_user_id = $2 LIMIT 1
 `
 
 type GetShareByStorageAndTargetUserParams struct {
-	StorageID    int32 `json:"storage_id"`
-	TargetUserID int32 `json:"target_user_id"`
+	StorageID    int32     `json:"storage_id"`
+	TargetUserID uuid.UUID `json:"target_user_id"`
 }
 
 func (q *Queries) GetShareByStorageAndTargetUser(ctx context.Context, arg GetShareByStorageAndTargetUserParams) (Share, error) {
@@ -78,11 +80,11 @@ func (q *Queries) GetShareByStorageAndTargetUser(ctx context.Context, arg GetSha
 	var i Share
 	err := row.Scan(
 		&i.ID,
-		&i.SourceUserID,
 		&i.StorageID,
-		&i.TargetUserID,
 		&i.CanShare,
 		&i.SharedAt,
+		&i.SourceUserID,
+		&i.TargetUserID,
 	)
 	return i, err
 }
@@ -101,7 +103,7 @@ func (q *Queries) HardDeleteShare(ctx context.Context, id int32) (int64, error) 
 }
 
 const listShares = `-- name: ListShares :many
-SELECT id, source_user_id, storage_id, target_user_id, can_share, shared_at FROM shares
+SELECT id, storage_id, can_share, shared_at, source_user_id, target_user_id FROM shares
 ORDER BY id
 LIMIT $1 OFFSET $2
 `
@@ -122,11 +124,11 @@ func (q *Queries) ListShares(ctx context.Context, arg ListSharesParams) ([]Share
 		var i Share
 		if err := rows.Scan(
 			&i.ID,
-			&i.SourceUserID,
 			&i.StorageID,
-			&i.TargetUserID,
 			&i.CanShare,
 			&i.SharedAt,
+			&i.SourceUserID,
+			&i.TargetUserID,
 		); err != nil {
 			return nil, err
 		}
@@ -142,16 +144,16 @@ func (q *Queries) ListShares(ctx context.Context, arg ListSharesParams) ([]Share
 }
 
 const listSharesByUser = `-- name: ListSharesByUser :many
-SELECT id, source_user_id, storage_id, target_user_id, can_share, shared_at FROM shares
+SELECT id, storage_id, can_share, shared_at, source_user_id, target_user_id FROM shares
 WHERE source_user_id = $3
 ORDER BY id
 LIMIT $1 OFFSET $2
 `
 
 type ListSharesByUserParams struct {
-	Limit        int32 `json:"limit"`
-	Offset       int32 `json:"offset"`
-	SourceUserID int32 `json:"source_user_id"`
+	Limit        int32     `json:"limit"`
+	Offset       int32     `json:"offset"`
+	SourceUserID uuid.UUID `json:"source_user_id"`
 }
 
 func (q *Queries) ListSharesByUser(ctx context.Context, arg ListSharesByUserParams) ([]Share, error) {
@@ -165,11 +167,11 @@ func (q *Queries) ListSharesByUser(ctx context.Context, arg ListSharesByUserPara
 		var i Share
 		if err := rows.Scan(
 			&i.ID,
-			&i.SourceUserID,
 			&i.StorageID,
-			&i.TargetUserID,
 			&i.CanShare,
 			&i.SharedAt,
+			&i.SourceUserID,
+			&i.TargetUserID,
 		); err != nil {
 			return nil, err
 		}
@@ -193,14 +195,14 @@ SET
     can_share = $5,
     shared_at = $6
 WHERE id = $1
-RETURNING id, source_user_id, storage_id, target_user_id, can_share, shared_at
+RETURNING id, storage_id, can_share, shared_at, source_user_id, target_user_id
 `
 
 type UpdateShareParams struct {
 	ID           int32     `json:"id"`
-	SourceUserID int32     `json:"source_user_id"`
+	SourceUserID uuid.UUID `json:"source_user_id"`
 	StorageID    int32     `json:"storage_id"`
-	TargetUserID int32     `json:"target_user_id"`
+	TargetUserID uuid.UUID `json:"target_user_id"`
 	CanShare     bool      `json:"can_share"`
 	SharedAt     time.Time `json:"shared_at"`
 }
@@ -217,11 +219,11 @@ func (q *Queries) UpdateShare(ctx context.Context, arg UpdateShareParams) (Share
 	var i Share
 	err := row.Scan(
 		&i.ID,
-		&i.SourceUserID,
 		&i.StorageID,
-		&i.TargetUserID,
 		&i.CanShare,
 		&i.SharedAt,
+		&i.SourceUserID,
+		&i.TargetUserID,
 	)
 	return i, err
 }

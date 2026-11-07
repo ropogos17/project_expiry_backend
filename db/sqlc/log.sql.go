@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/google/uuid"
 	"github.com/sqlc-dev/pqtype"
 )
 
@@ -22,7 +23,7 @@ type CreateLogParams struct {
 	ActionTypeID int32                 `json:"action_type_id"`
 	Message      sql.NullString        `json:"message"`
 	Data         pqtype.NullRawMessage `json:"data"`
-	UserID       int32                 `json:"user_id"`
+	UserID       uuid.UUID             `json:"user_id"`
 }
 
 func (q *Queries) CreateLog(ctx context.Context, arg CreateLogParams) (Log, error) {

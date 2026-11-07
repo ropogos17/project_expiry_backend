@@ -24,8 +24,18 @@ type Announcement struct {
 	ExternalLink sql.NullString `json:"external_link"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
-	CreatedBy    int32          `json:"created_by"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`
+	CreatedBy    uuid.UUID      `json:"created_by"`
+}
+
+type AuthIdentity struct {
+	ID             int32          `json:"id"`
+	Provider       string         `json:"provider"`
+	Issuer         string         `json:"issuer"`
+	ProviderUserID string         `json:"provider_user_id"`
+	ProviderEmail  sql.NullString `json:"provider_email"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UserID         uuid.UUID      `json:"user_id"`
 }
 
 type Category struct {
@@ -45,8 +55,8 @@ type Item struct {
 	ExpiresAt      time.Time      `json:"expires_at"`
 	StorageID      int32          `json:"storage_id"`
 	Shelf          int32          `json:"shelf"`
-	LastModifiedBy int32          `json:"last_modified_by"`
 	DeletedAt      sql.NullTime   `json:"deleted_at"`
+	LastModifiedBy uuid.UUID      `json:"last_modified_by"`
 }
 
 type Log struct {
@@ -55,15 +65,16 @@ type Log struct {
 	ActionTypeID int32                 `json:"action_type_id"`
 	Message      sql.NullString        `json:"message"`
 	Data         pqtype.NullRawMessage `json:"data"`
-	UserID       int32                 `json:"user_id"`
+	UserID       uuid.UUID             `json:"user_id"`
 }
 
 type RefreshToken struct {
 	ID        uuid.UUID    `json:"id"`
-	UserID    int32        `json:"user_id"`
 	IssuedAt  time.Time    `json:"issued_at"`
 	ExpiresAt time.Time    `json:"expires_at"`
 	DeletedAt sql.NullTime `json:"deleted_at"`
+	TokenHash string       `json:"token_hash"`
+	UserID    uuid.UUID    `json:"user_id"`
 }
 
 type Role struct {
@@ -73,11 +84,11 @@ type Role struct {
 
 type Share struct {
 	ID           int32     `json:"id"`
-	SourceUserID int32     `json:"source_user_id"`
 	StorageID    int32     `json:"storage_id"`
-	TargetUserID int32     `json:"target_user_id"`
 	CanShare     bool      `json:"can_share"`
 	SharedAt     time.Time `json:"shared_at"`
+	SourceUserID uuid.UUID `json:"source_user_id"`
+	TargetUserID uuid.UUID `json:"target_user_id"`
 }
 
 type Storage struct {
@@ -87,20 +98,19 @@ type Storage struct {
 	Location    sql.NullString `json:"location"`
 	ShelfCount  int32          `json:"shelf_count"`
 	HasImage    bool           `json:"has_image"`
-	Owner       int32          `json:"owner"`
 	DeletedAt   sql.NullTime   `json:"deleted_at"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
+	Owner       uuid.UUID      `json:"owner"`
 }
 
 type User struct {
-	ID                int32          `json:"id"`
 	Name              string         `json:"name"`
 	Username          string         `json:"username"`
-	Email             string         `json:"email"`
+	Email             sql.NullString `json:"email"`
 	Phone             sql.NullString `json:"phone"`
 	HasAvatar         bool           `json:"has_avatar"`
-	Password          string         `json:"password"`
+	PasswordHash      sql.NullString `json:"password_hash"`
 	EmailVerified     bool           `json:"email_verified"`
 	PhoneVerified     bool           `json:"phone_verified"`
 	TwoFactorEnabled  bool           `json:"two_factor_enabled"`
@@ -114,4 +124,6 @@ type User struct {
 	DeletedAt         sql.NullTime   `json:"deleted_at"`
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
+	LegacyIntegerID   int32          `json:"legacy_integer_id"`
+	ID                uuid.UUID      `json:"id"`
 }

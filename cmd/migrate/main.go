@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"go/scanner"
 	"os"
 
 	"project_expiry_backend/utils"
@@ -45,8 +46,13 @@ func run() error {
 	}()
 
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return errors.New("database migration failed")
+		scanner.PrintError(os.Stderr, errors.New("database migration failed"))
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
+	//if err := m.Force(2); err != nil {
+	//	return fmt.Errorf("failed to force version 2: %w", err)
+	//}
+	//return nil
 
 	return nil
 }
