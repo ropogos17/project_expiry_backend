@@ -17,6 +17,7 @@ type Querier interface {
 	CreateActionType(ctx context.Context, name string) (ActionType, error)
 	CreateAnnouncement(ctx context.Context, arg CreateAnnouncementParams) (Announcement, error)
 	CreateCategory(ctx context.Context, name string) (Category, error)
+	CreateEmailVerification(ctx context.Context, arg CreateEmailVerificationParams) (EmailVerification, error)
 	CreateItem(ctx context.Context, arg CreateItemParams) (Item, error)
 	CreateLog(ctx context.Context, arg CreateLogParams) (Log, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
@@ -25,11 +26,13 @@ type Querier interface {
 	CreateStorage(ctx context.Context, arg CreateStorageParams) (Storage, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAnnouncement(ctx context.Context, id int32) error
+	DeleteExpiredEmailVerifications(ctx context.Context) error
 	DeleteItem(ctx context.Context, id int32) error
 	DeleteStorage(ctx context.Context, id int32) error
 	GetActionTypeByID(ctx context.Context, id int32) (ActionType, error)
 	GetAnnouncementByID(ctx context.Context, id int32) (Announcement, error)
 	GetCategoryByID(ctx context.Context, id int32) (Category, error)
+	GetEmailVerificationByEmailAndCode(ctx context.Context, arg GetEmailVerificationByEmailAndCodeParams) (EmailVerification, error)
 	GetItemByID(ctx context.Context, id int32) (Item, error)
 	GetLogByID(ctx context.Context, id int32) (Log, error)
 	GetRefreshTokenByHashForUpdate(ctx context.Context, tokenHash string) (RefreshToken, error)
@@ -75,6 +78,7 @@ type Querier interface {
 	ListStorages(ctx context.Context, arg ListStoragesParams) ([]Storage, error)
 	ListStoragesByOwner(ctx context.Context, arg ListStoragesByOwnerParams) ([]Storage, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	MarkEmailVerificationUsed(ctx context.Context, id uuid.UUID) error
 	RestoreAnnouncement(ctx context.Context, id int32) error
 	RestoreItem(ctx context.Context, id int32) error
 	RestoreRefreshToken(ctx context.Context, id uuid.UUID) error

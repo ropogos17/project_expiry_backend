@@ -43,6 +43,15 @@ type Category struct {
 	Name string `json:"name"`
 }
 
+type EmailVerification struct {
+	ID        uuid.UUID    `json:"id"`
+	Email     string       `json:"email"`
+	Code      string       `json:"code"`
+	ExpiresAt time.Time    `json:"expires_at"`
+	UsedAt    sql.NullTime `json:"used_at"`
+	CreatedAt time.Time    `json:"created_at"`
+}
+
 type Item struct {
 	ID             int32          `json:"id"`
 	Name           string         `json:"name"`
