@@ -17,7 +17,6 @@ type createAnnouncementRequest struct {
 	Name         string `json:"name" binding:"required"`
 	Description  string `json:"description"`
 	ExternalLink string `json:"external_link"`
-	CreatedBy    bool   `json:"created_by"`
 }
 
 type getAnnouncementRequest struct {
@@ -37,7 +36,6 @@ type updateAnnouncementBodyRequest struct {
 	Name         string `json:"name" binding:"required"`
 	Description  string `json:"description"`
 	ExternalLink string `json:"external_link"`
-	CreatedBy    bool   `json:"created_by"`
 }
 
 type deleteAnnouncementRequest struct {
@@ -269,6 +267,7 @@ func (server *Server) hardDeleteAnnouncement(c *gin.Context) {
 
 	if rows == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "announcement not found"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "announcement permanently deleted"})

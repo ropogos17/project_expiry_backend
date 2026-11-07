@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/o1egl/paseto"
 	"golang.org/x/crypto/chacha20poly1305"
 )
@@ -25,7 +26,7 @@ func NewPasetoMaker(symmetricKey string) (Maker, error) {
 	return maker, nil
 }
 
-func (maker *PasetoMaker) CreateToken(userid int32, username string, duration time.Duration) (string, error) {
+func (maker *PasetoMaker) CreateToken(userid uuid.UUID, username string, duration time.Duration) (string, error) {
 	payload, err := NewPayload(userid, username, duration)
 	if err != nil {
 		return "", err

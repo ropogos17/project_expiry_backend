@@ -16,14 +16,14 @@ func createRandomUser(t *testing.T) db.User {
 	role := createRandomRole(t)
 
 	arg := db.CreateUserParams{
-		Name:        utils.RandomString(10),
-		Username:    uuid.New().String(),
-		Email:       uuid.New().String() + "@test.com",
-		Phone:       sql.NullString{String: "+36301234567", Valid: true},
-		HasAvatar:   false,
-		Password:    utils.RandomString(32),
-		RoleID:      role.ID,
-		IsSuperuser: false,
+		Name:         utils.RandomString(10),
+		Username:     uuid.New().String(),
+		Email:        sql.NullString{String: uuid.New().String() + "@test.com", Valid: true},
+		Phone:        sql.NullString{String: "+36301234567", Valid: true},
+		HasAvatar:    false,
+		PasswordHash: sql.NullString{String: utils.RandomString(32), Valid: true},
+		RoleID:       role.ID,
+		IsSuperuser:  false,
 	}
 
 	user, err := testQueries.CreateUser(context.Background(), arg)
@@ -89,7 +89,7 @@ func TestUpdateUser(t *testing.T) {
 		ID:                user1.ID,
 		Name:              utils.RandomString(10),
 		Username:          uuid.New().String(),
-		Email:             uuid.New().String() + "@test.com",
+		Email:             sql.NullString{String: uuid.New().String() + "@test.com", Valid: true},
 		Phone:             sql.NullString{Valid: false},
 		HasAvatar:         false,
 		EmailVerified:     false,

@@ -20,7 +20,7 @@ UPDATE users
 SET legacy_integer_id = id;
 
 ALTER TABLE users
-    ALTER COLUMN legacy_integer_id SET NOT NULL;
+    ALTER COLUMN legacy_integer_id DROP NOT NULL;
 
 ALTER TABLE users
     ADD CONSTRAINT uq_users_legacy_integer_id

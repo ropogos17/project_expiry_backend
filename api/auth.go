@@ -23,10 +23,10 @@ type createUserRequest struct {
 }
 
 type userResponse struct {
-	ID               int32      `json:"id"`
+	ID               string     `json:"id"`
 	Name             string     `json:"name"`
 	Username         string     `json:"username"`
-	Email            string     `json:"email"`
+	Email            *string    `json:"email"`
 	Phone            *string    `json:"phone"`
 	HasAvatar        bool       `json:"has_avatar"`
 	EmailVerified    bool       `json:"email_verified"`
@@ -47,10 +47,15 @@ func newUserResponse(user db.User) userResponse {
 	}
 
 	return userResponse{
-		ID:               user.ID,
-		Name:             user.Name,
-		Username:         user.Username,
-		Email:            user.Email,
+		ID:       user.ID.String(),
+		Name:     user.Name,
+		Username: user.Username,
+		Email: func() *string {
+			if user.Email.Valid {
+				return &user.Email.String
+			}
+			return nil
+		}(),
 		Phone:            phone,
 		HasAvatar:        user.HasAvatar,
 		EmailVerified:    user.EmailVerified,
@@ -74,14 +79,14 @@ func (server *Server) registerUser(ctx *gin.Context) {
 	}
 
 	arg := db.CreateUserParams{
-		Name:        req.Name,
-		Username:    req.Username,
-		Email:       req.Email,
-		Phone:       sql.NullString{},
-		HasAvatar:   false,
-		Password:    hashedPassword,
-		RoleID:      1, // TODO: change this
-		IsSuperuser: false,
+		Name:         req.Name,
+		Username:     req.Username,
+		Email:        sql.NullString{String: req.Email, Valid: true},
+		Phone:        sql.NullString{},
+		HasAvatar:    false,
+		PasswordHash: sql.NullString{String: hashedPassword, Valid: true},
+		RoleID:       1, // TODO: change this
+		IsSuperuser:  false,
 	}
 
 	user, err := server.store.CreateUser(ctx, arg)
@@ -111,7 +116,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
-	user, err := server.store.GetUserByEmail(ctx, req.Email)
+	user, err := server.store.GetUserByEmail(ctx, sql.NullString{String: req.Email, Valid: true})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid email or password")))
@@ -121,7 +126,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
-	err = utils.CheckPassword(req.Password, user.Password)
+	err = utils.CheckPassword(req.Password, user.PasswordHash.String)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid email or password")))
 		return
@@ -183,7 +188,7 @@ func (server *Server) changePassword(ctx *gin.Context) {
 		return
 	}
 
-	err = utils.CheckPassword(req.OldPassword, user.Password)
+	err = utils.CheckPassword(req.OldPassword, user.PasswordHash.String)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid old password")))
 		return
@@ -199,8 +204,8 @@ func (server *Server) changePassword(ctx *gin.Context) {
 	err = server.store.ExecTx(ctx, func(q *db.Queries) error {
 		// save new pwd
 		err := q.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
-			ID:       user.ID,
-			Password: hashedPassword,
+			ID:           user.ID,
+			PasswordHash: sql.NullString{String: hashedPassword, Valid: true},
 		})
 		if err != nil {
 			return err

@@ -124,6 +124,6 @@ type User struct {
 	DeletedAt         sql.NullTime   `json:"deleted_at"`
 	CreatedAt         time.Time      `json:"created_at"`
 	UpdatedAt         time.Time      `json:"updated_at"`
-	LegacyIntegerID   int32          `json:"legacy_integer_id"`
+	LegacyIntegerID   sql.NullInt32  `json:"legacy_integer_id"`
 	ID                uuid.UUID      `json:"id"`
 }

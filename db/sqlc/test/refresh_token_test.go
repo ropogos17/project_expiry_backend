@@ -2,18 +2,24 @@ package test
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	db "project_expiry_backend/db/sqlc"
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
 
 func createRandomRefreshToken(t *testing.T) db.RefreshToken {
 	user := createRandomUser(t)
 
+	hash := sha256.Sum256([]byte(uuid.New().String()))
+	tokenHash := fmt.Sprintf("%x", hash[:])
 	arg := db.CreateRefreshTokenParams{
 		UserID:    user.ID,
+		TokenHash: tokenHash,
 		IssuedAt:  time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
@@ -104,8 +110,11 @@ func TestListRefreshTokensByUser(t *testing.T) {
 	user := createRandomUser(t)
 
 	for i := 0; i < 3; i++ {
+		hash := sha256.Sum256([]byte(uuid.New().String()))
+		tokenHash := fmt.Sprintf("%x", hash[:])
 		arg := db.CreateRefreshTokenParams{
 			UserID:    user.ID,
+			TokenHash: tokenHash,
 			IssuedAt:  time.Now(),
 			ExpiresAt: time.Now().Add(24 * time.Hour),
 		}

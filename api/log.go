@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/sqlc-dev/pqtype"
 )
 
@@ -34,7 +35,7 @@ type createLogRequest struct {
 	ActionTypeID int32           `json:"action_type_id" binding:"required"`
 	Message      *string         `json:"message"`
 	Data         json.RawMessage `json:"data"`
-	UserID       int32           `json:"user_id" binding:"required"`
+	UserID       string          `json:"user_id" binding:"required,uuid"`
 }
 
 func (server *Server) createLog(c *gin.Context) {
@@ -45,6 +46,11 @@ func (server *Server) createLog(c *gin.Context) {
 	}
 
 	req.Message = trimStringPtr(req.Message)
+	UserID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 	params := db.CreateLogParams{
 		ActionTypeID: req.ActionTypeID,
 		Message:      nullableString(valueOrEmpty(req.Message)),
@@ -52,7 +58,7 @@ func (server *Server) createLog(c *gin.Context) {
 			RawMessage: req.Data,
 			Valid:      req.Data != nil,
 		},
-		UserID: req.UserID,
+		UserID: UserID,
 	}
 
 	log, err := server.store.CreateLog(c.Request.Context(), params)
