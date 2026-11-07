@@ -1,12 +1,13 @@
 package api
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"time"
-
-	"github.com/google/uuid"
 
 	db "project_expiry_backend/db/sqlc"
 	"project_expiry_backend/token"
@@ -14,6 +15,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+// generateRefreshToken returns a cryptographically random 32-byte hex string
+// (the raw token) and its SHA-256 hash (to store in the DB).
+func generateRefreshToken() (rawToken string, tokenHash string, err error) {
+	b := make([]byte, 32)
+	if _, err = rand.Read(b); err != nil {
+		return
+	}
+	rawToken = hex.EncodeToString(b)
+	hash := sha256.Sum256([]byte(rawToken))
+	tokenHash = hex.EncodeToString(hash[:])
+	return
+}
 
 type createUserRequest struct {
 	Name     string `json:"name" binding:"required"`
@@ -65,7 +79,7 @@ func newUserResponse(user db.User) userResponse {
 	}
 }
 
-func (server *Server) registerUser(ctx *gin.Context) {
+func (server *Server) registerUserByEmail(ctx *gin.Context) {
 	var req createUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -109,7 +123,7 @@ type loginUserResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func (server *Server) loginUser(ctx *gin.Context) {
+func (server *Server) loginUserByEmail(ctx *gin.Context) {
 	var req loginUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -125,14 +139,14 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+	if user.DeletedAt.Valid || (user.LockedUntil.Valid && time.Now().Before(user.LockedUntil.Time)) {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("account is suspended")))
+		return
+	}
 
 	err = utils.CheckPassword(req.Password, user.PasswordHash.String)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid email or password")))
-		return
-	}
-	if user.DeletedAt.Valid || (user.LockedUntil.Valid && time.Now().Before(user.LockedUntil.Time)) {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("account is suspended")))
 		return
 	}
 
@@ -146,12 +160,18 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
+	rawToken, tokenHash, err := generateRefreshToken()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 	refreshToken := db.CreateRefreshTokenParams{
 		UserID:    user.ID,
+		TokenHash: tokenHash,
 		IssuedAt:  time.Now(),
 		ExpiresAt: time.Now().Add(server.config.RefreshTokenDuration),
 	}
-	refreshTokenRes, err := server.store.CreateRefreshToken(ctx, refreshToken)
+	_, err = server.store.CreateRefreshToken(ctx, refreshToken)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
@@ -159,7 +179,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	rsp := loginUserResponse{
 		AccessToken:  accessToken,
-		RefreshToken: refreshTokenRes.ID.String(),
+		RefreshToken: rawToken,
 	}
 	ctx.JSON(http.StatusOK, rsp)
 }
@@ -178,7 +198,7 @@ func (server *Server) changePassword(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
-	user, err := server.store.GetUserByUsername(ctx, authPayload.Username)
+	user, err := server.store.GetUserByID(ctx, authPayload.UserID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ctx.JSON(http.StatusNotFound, errorResponse(errors.New("user not found")))
@@ -188,10 +208,17 @@ func (server *Server) changePassword(ctx *gin.Context) {
 		return
 	}
 
-	err = utils.CheckPassword(req.OldPassword, user.PasswordHash.String)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid old password")))
+	if !user.Email.Valid {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("email is required to change password")))
 		return
+	}
+
+	if user.PasswordHash.Valid {
+		err = utils.CheckPassword(req.OldPassword, user.PasswordHash.String)
+		if err != nil {
+			ctx.JSON(http.StatusUnauthorized, errorResponse(errors.New("invalid old password")))
+			return
+		}
 	}
 
 	hashedPassword, err := utils.HashPassword(req.NewPassword)
@@ -233,19 +260,16 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 		return
 	}
 
-	tokenID, err := uuid.Parse(req.RefreshToken)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
+	hash := sha256.Sum256([]byte(req.RefreshToken))
+	oldTokenHash := hex.EncodeToString(hash[:])
 
 	var user db.User
-	var newRefreshToken db.RefreshToken
+	var rawRefreshToken string
 	var accessToken string
 	var errRefreshTokenExpired = errors.New("refresh token expired")
 
-	err = server.store.ExecTx(ctx, func(q *db.Queries) error {
-		oldToken, err := q.GetRefreshTokenByIDForUpdate(ctx, tokenID)
+	err := server.store.ExecTx(ctx, func(q *db.Queries) error {
+		oldToken, err := q.GetRefreshTokenByHashForUpdate(ctx, oldTokenHash)
 		if err != nil {
 			return err
 		}
@@ -276,9 +300,16 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 			return err
 		}
 
+		rawToken, newHash, err := generateRefreshToken()
+		if err != nil {
+			return err
+		}
+		rawRefreshToken = rawToken
+
 		now = time.Now()
-		newRefreshToken, err = q.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
+		_, err = q.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
 			UserID:    oldToken.UserID,
+			TokenHash: newHash,
 			IssuedAt:  now,
 			ExpiresAt: now.Add(server.config.RefreshTokenDuration),
 		})
@@ -296,7 +327,7 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 
 	rsp := loginUserResponse{
 		AccessToken:  accessToken,
-		RefreshToken: newRefreshToken.ID.String(),
+		RefreshToken: rawRefreshToken,
 	}
 	ctx.JSON(http.StatusOK, rsp)
 }
@@ -312,13 +343,10 @@ func (server *Server) logoutUser(ctx *gin.Context) {
 		return
 	}
 
-	tokenID, err := uuid.Parse(req.RefreshToken)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
+	hash := sha256.Sum256([]byte(req.RefreshToken))
+	tokenHash := hex.EncodeToString(hash[:])
 
-	_, err = server.store.HardDeleteRefreshToken(ctx, tokenID)
+	_, err := server.store.HardDeleteRefreshTokenByHash(ctx, tokenHash)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

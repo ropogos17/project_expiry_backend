@@ -44,6 +44,27 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 	return i, err
 }
 
+const getRefreshTokenByHashForUpdate = `-- name: GetRefreshTokenByHashForUpdate :one
+SELECT id, issued_at, expires_at, deleted_at, token_hash, user_id FROM refresh_tokens
+WHERE token_hash = $1 AND deleted_at IS NULL
+LIMIT 1
+FOR UPDATE
+`
+
+func (q *Queries) GetRefreshTokenByHashForUpdate(ctx context.Context, tokenHash string) (RefreshToken, error) {
+	row := q.db.QueryRowContext(ctx, getRefreshTokenByHashForUpdate, tokenHash)
+	var i RefreshToken
+	err := row.Scan(
+		&i.ID,
+		&i.IssuedAt,
+		&i.ExpiresAt,
+		&i.DeletedAt,
+		&i.TokenHash,
+		&i.UserID,
+	)
+	return i, err
+}
+
 const getRefreshTokenByID = `-- name: GetRefreshTokenByID :one
 SELECT id, issued_at, expires_at, deleted_at, token_hash, user_id FROM refresh_tokens
 WHERE id = $1 AND deleted_at IS NULL
@@ -92,6 +113,19 @@ WHERE id = $1
 
 func (q *Queries) HardDeleteRefreshToken(ctx context.Context, id uuid.UUID) (int64, error) {
 	result, err := q.db.ExecContext(ctx, hardDeleteRefreshToken, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const hardDeleteRefreshTokenByHash = `-- name: HardDeleteRefreshTokenByHash :execrows
+DELETE FROM refresh_tokens
+WHERE token_hash = $1
+`
+
+func (q *Queries) HardDeleteRefreshTokenByHash(ctx context.Context, tokenHash string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, hardDeleteRefreshTokenByHash, tokenHash)
 	if err != nil {
 		return 0, err
 	}

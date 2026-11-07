@@ -14,6 +14,12 @@ WHERE id = $1 AND deleted_at IS NULL
 LIMIT 1
 FOR UPDATE;
 
+-- name: GetRefreshTokenByHashForUpdate :one
+SELECT * FROM refresh_tokens
+WHERE token_hash = $1 AND deleted_at IS NULL
+LIMIT 1
+FOR UPDATE;
+
 -- name: ListRefreshTokens :many
 SELECT * FROM refresh_tokens
 ORDER BY issued_at DESC
@@ -51,3 +57,7 @@ WHERE id = $1;
 -- name: HardDeleteRefreshTokensByUser :execrows
 DELETE FROM refresh_tokens
 WHERE user_id = $1;
+
+-- name: HardDeleteRefreshTokenByHash :execrows
+DELETE FROM refresh_tokens
+WHERE token_hash = $1;

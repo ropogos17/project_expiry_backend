@@ -41,8 +41,8 @@ func (server *Server) SetupRouter() {
 	// Auth routes (public)
 	authRoutes := router.Group("/auth")
 	{
-		authRoutes.POST("/register", server.registerUser)
-		authRoutes.POST("/login", server.loginUser)
+		authRoutes.POST("/register", server.registerUserByEmail)
+		authRoutes.POST("/login", server.loginUserByEmail)
 		authRoutes.POST("/refresh", server.refreshToken)
 		authRoutes.POST("/logout", server.logoutUser)
 		pw := router.Group("/auth").Use(authMiddleware)
