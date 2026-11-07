@@ -14,7 +14,7 @@ DROP INDEX IF EXISTS idx_shares_storage_id;
 DROP INDEX IF EXISTS idx_shares_target_user_id;
 DROP INDEX IF EXISTS idx_shares_source_user_id;
 
-DROP INDEX IF EXISTS idx_items_deleted_at;
+DROP INDEX IF EXISTS idx_items_is_deleted_at;
 DROP INDEX IF EXISTS idx_items_expires_at;
 DROP INDEX IF EXISTS idx_items_category_id;
 DROP INDEX IF EXISTS idx_items_storage_id;
