@@ -12,6 +12,20 @@ WHERE email = $1
 ORDER BY created_at DESC
 LIMIT 1;
 
+-- name: GetVerifiedEmailVerification :one
+SELECT * FROM email_verifications
+WHERE email = $1
+  AND verified = true
+  AND used_at IS NULL
+  AND expires_at > NOW()
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: MarkEmailVerificationVerified :exec
+UPDATE email_verifications
+SET verified = true
+WHERE id = $1;
+
 -- name: MarkEmailVerificationUsed :exec
 UPDATE email_verifications
 SET used_at = NOW()

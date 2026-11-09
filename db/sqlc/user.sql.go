@@ -21,23 +21,25 @@ INSERT INTO users (
     has_avatar,
     password_hash,
     role_id,
-    is_superuser
+    is_superuser,
+    email_verified
 )
 VALUES (
-           $1, $2, $3, $4, $5, $6, $7, $8
+           $1, $2, $3, $4, $5, $6, $7, $8, $9
        )
 RETURNING name, username, email, phone, has_avatar, password_hash, email_verified, phone_verified, two_factor_enabled, two_factor_secret, last_login, login_attempts, locked_until, password_changed_at, role_id, is_superuser, deleted_at, created_at, updated_at, legacy_integer_id, id
 `
 
 type CreateUserParams struct {
-	Name         string         `json:"name"`
-	Username     string         `json:"username"`
-	Email        sql.NullString `json:"email"`
-	Phone        sql.NullString `json:"phone"`
-	HasAvatar    bool           `json:"has_avatar"`
-	PasswordHash sql.NullString `json:"password_hash"`
-	RoleID       int32          `json:"role_id"`
-	IsSuperuser  bool           `json:"is_superuser"`
+	Name          string         `json:"name"`
+	Username      string         `json:"username"`
+	Email         sql.NullString `json:"email"`
+	Phone         sql.NullString `json:"phone"`
+	HasAvatar     bool           `json:"has_avatar"`
+	PasswordHash  sql.NullString `json:"password_hash"`
+	RoleID        int32          `json:"role_id"`
+	IsSuperuser   bool           `json:"is_superuser"`
+	EmailVerified bool           `json:"email_verified"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -50,6 +52,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.PasswordHash,
 		arg.RoleID,
 		arg.IsSuperuser,
+		arg.EmailVerified,
 	)
 	var i User
 	err := row.Scan(

@@ -41,6 +41,8 @@ func (server *Server) SetupRouter() {
 	// Auth routes (public)
 	authRoutes := router.Group("/auth")
 	{
+		authRoutes.POST("/verify-email/send", server.sendVerificationEmail)
+		authRoutes.POST("/verify-email/confirm", server.confirmVerificationEmail)
 		authRoutes.POST("/register", server.registerUserByEmail)
 		authRoutes.POST("/login", server.loginUserByEmail)
 		authRoutes.POST("/refresh", server.refreshToken)

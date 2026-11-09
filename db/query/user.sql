@@ -7,10 +7,11 @@ INSERT INTO users (
     has_avatar,
     password_hash,
     role_id,
-    is_superuser
+    is_superuser,
+    email_verified
 )
 VALUES (
-           $1, $2, $3, $4, $5, $6, $7, $8
+           $1, $2, $3, $4, $5, $6, $7, $8, $9
        )
 RETURNING *;
 

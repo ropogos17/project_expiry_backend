@@ -86,31 +86,55 @@ func (server *Server) registerUserByEmail(ctx *gin.Context) {
 		return
 	}
 
+	_, err := server.store.GetVerifiedEmailVerification(ctx, req.Email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "email not verified"})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	arg := db.CreateUserParams{
-		Name:         req.Name,
-		Username:     req.Username,
-		Email:        sql.NullString{String: req.Email, Valid: true},
-		Phone:        sql.NullString{},
-		HasAvatar:    false,
-		PasswordHash: sql.NullString{String: hashedPassword, Valid: true},
-		RoleID:       1, // TODO: change this
-		IsSuperuser:  false,
-	}
+	var user db.User
 
-	user, err := server.store.CreateUser(ctx, arg)
+	err = server.store.ExecTx(ctx, func(q *db.Queries) error {
+		var err error
+		user, err = q.CreateUser(ctx, db.CreateUserParams{
+			Name:          req.Name,
+			Username:      req.Username,
+			Email:         sql.NullString{String: req.Email, Valid: true},
+			Phone:         sql.NullString{},
+			HasAvatar:     false,
+			PasswordHash:  sql.NullString{String: hashedPassword, Valid: true},
+			RoleID:        1, // TODO: change this
+			IsSuperuser:   false,
+			EmailVerified: true,
+		})
+		if err != nil {
+			return err
+		}
+
+		verification, err := q.GetVerifiedEmailVerification(ctx, req.Email)
+		if err != nil {
+			return err
+		}
+
+		return q.MarkEmailVerificationUsed(ctx, verification.ID)
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	rsp := newUserResponse(user)
-	ctx.JSON(http.StatusOK, rsp)
+	ctx.JSON(http.StatusCreated, rsp)
 }
 
 type loginUserRequest struct {
@@ -352,4 +376,96 @@ func (server *Server) logoutUser(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"message": "logout successful"})
+}
+
+type sendVerificationEmailRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+// POST /auth/verify-email/send
+func (server *Server) sendVerificationEmail(ctx *gin.Context) {
+	var req sendVerificationEmailRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	_, err := server.store.GetUserByEmail(ctx, sql.NullString{String: req.Email, Valid: true})
+	if err == nil {
+		ctx.JSON(http.StatusConflict, gin.H{"error": "email already in use"})
+		return
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	code, err := utils.GenerateVerificationCode()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	_, err = server.store.CreateEmailVerification(ctx, db.CreateEmailVerificationParams{
+		Email:     req.Email,
+		Code:      code,
+		ExpiresAt: time.Now().Add(10 * time.Minute),
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	err = utils.SendVerificationEmail(server.config.N8NWebhookURL, req.Email, code)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	err = server.store.DeleteExpiredEmailVerifications(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "verification email sent"})
+}
+
+type confirmVerificationEmailRequest struct {
+	Email string `json:"email" binding:"required,email"`
+	Code  string `json:"code" binding:"required,len=6"`
+}
+
+type verifiedEmailTokenResponse struct {
+	VerifiedToken string `json:"verified_token"`
+}
+
+// POST /auth/verify-email/confirm
+func (server *Server) confirmVerificationEmail(ctx *gin.Context) {
+	var req confirmVerificationEmailRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	verification, err := server.store.GetEmailVerificationByEmailAndCode(ctx, db.GetEmailVerificationByEmailAndCodeParams{
+		Email: req.Email,
+		Code:  req.Code,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired code"})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	err = server.store.MarkEmailVerificationVerified(ctx, verification.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "email verified"})
 }

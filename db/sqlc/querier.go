@@ -45,6 +45,7 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email sql.NullString) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	GetVerifiedEmailVerification(ctx context.Context, email string) (EmailVerification, error)
 	HardDeleteActionType(ctx context.Context, id int32) (int64, error)
 	HardDeleteAnnouncement(ctx context.Context, id int32) (int64, error)
 	HardDeleteCategory(ctx context.Context, id int32) (int64, error)
@@ -79,6 +80,7 @@ type Querier interface {
 	ListStoragesByOwner(ctx context.Context, arg ListStoragesByOwnerParams) ([]Storage, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	MarkEmailVerificationUsed(ctx context.Context, id uuid.UUID) error
+	MarkEmailVerificationVerified(ctx context.Context, id uuid.UUID) error
 	RestoreAnnouncement(ctx context.Context, id int32) error
 	RestoreItem(ctx context.Context, id int32) error
 	RestoreRefreshToken(ctx context.Context, id uuid.UUID) error

@@ -15,7 +15,7 @@ import (
 const createEmailVerification = `-- name: CreateEmailVerification :one
 INSERT INTO email_verifications (email, code, expires_at)
 VALUES ($1, $2, $3)
-RETURNING id, email, code, expires_at, used_at, created_at
+RETURNING id, email, code, expires_at, used_at, created_at, verified
 `
 
 type CreateEmailVerificationParams struct {
@@ -34,6 +34,7 @@ func (q *Queries) CreateEmailVerification(ctx context.Context, arg CreateEmailVe
 		&i.ExpiresAt,
 		&i.UsedAt,
 		&i.CreatedAt,
+		&i.Verified,
 	)
 	return i, err
 }
@@ -49,7 +50,7 @@ func (q *Queries) DeleteExpiredEmailVerifications(ctx context.Context) error {
 }
 
 const getEmailVerificationByEmailAndCode = `-- name: GetEmailVerificationByEmailAndCode :one
-SELECT id, email, code, expires_at, used_at, created_at FROM email_verifications
+SELECT id, email, code, expires_at, used_at, created_at, verified FROM email_verifications
 WHERE email = $1
   AND code = $2
   AND used_at IS NULL
@@ -73,6 +74,32 @@ func (q *Queries) GetEmailVerificationByEmailAndCode(ctx context.Context, arg Ge
 		&i.ExpiresAt,
 		&i.UsedAt,
 		&i.CreatedAt,
+		&i.Verified,
+	)
+	return i, err
+}
+
+const getVerifiedEmailVerification = `-- name: GetVerifiedEmailVerification :one
+SELECT id, email, code, expires_at, used_at, created_at, verified FROM email_verifications
+WHERE email = $1
+  AND verified = true
+  AND used_at IS NULL
+  AND expires_at > NOW()
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+func (q *Queries) GetVerifiedEmailVerification(ctx context.Context, email string) (EmailVerification, error) {
+	row := q.db.QueryRowContext(ctx, getVerifiedEmailVerification, email)
+	var i EmailVerification
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Code,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.CreatedAt,
+		&i.Verified,
 	)
 	return i, err
 }
@@ -85,5 +112,16 @@ WHERE id = $1
 
 func (q *Queries) MarkEmailVerificationUsed(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, markEmailVerificationUsed, id)
+	return err
+}
+
+const markEmailVerificationVerified = `-- name: MarkEmailVerificationVerified :exec
+UPDATE email_verifications
+SET verified = true
+WHERE id = $1
+`
+
+func (q *Queries) MarkEmailVerificationVerified(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, markEmailVerificationVerified, id)
 	return err
 }
